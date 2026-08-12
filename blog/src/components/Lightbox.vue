@@ -162,7 +162,8 @@ function onDragMove(e) {
   const dx = e.clientX - dragStart.value.x
   const dy = e.clientY - dragStart.value.y
   if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
-  e.preventDefault()
+  // 注意：绝不 preventDefault —— 否则浏览器吞掉 dblclick，双击缩放失效。
+  // 防原生拖拽/选中已由 img draggable=false + user-select:none 保证。
   panX.value = panStart.value.x + dx
   panY.value = panStart.value.y + dy
 }
