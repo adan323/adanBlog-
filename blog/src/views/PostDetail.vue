@@ -39,36 +39,32 @@
         </div>
       </header>
 
-      <!-- 封面图：无封面不渲染；毛玻璃背景填充 + 原图完整显示（竖图/横图都无留白） -->
-      <div v-if="post.coverUrl" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in relative bg-slate-100 dark:bg-slate-800 group">
-        <div v-if="coverState !== 'ok'" class="skeleton flex items-center justify-center" style="height: 320px; width: 100%">
+      <!-- 封面图：自适应容器包裹（容器宽度贴合图片，竖图/横图都完整显示无留白） -->
+      <div v-if="post.coverUrl" class="mb-10 animate-fade-in">
+        <!-- 加载/失败占位 -->
+        <div v-if="coverState !== 'ok'" class="skeleton flex items-center justify-center rounded-2xl" style="height: 320px; width: 100%">
           <span class="relative z-10 flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
             <svg v-if="coverState !== 'error'" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 3a9 9 0 109 9h-3a6 6 0 11-6-6V3z"/></svg>
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
             {{ coverState === 'error' ? '封面加载失败' : '封面加载中…' }}
           </span>
         </div>
-        <!-- 探测图：始终渲染负责触发加载状态（背景图，加载成功→封面出现） -->
+        <!-- 探测图：始终渲染触发加载状态（注意不能用 display:none，否则不触发加载） -->
         <img v-if="coverState !== 'ok'" :src="post.coverUrl" alt="" aria-hidden="true"
-             class="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none"
+             class="block w-0 h-0 opacity-0 pointer-events-none overflow-hidden"
              @load="coverState = 'ok'" @error="coverState = 'error'">
-        <template v-if="coverState === 'ok'">
-          <!-- 毛玻璃背景：原图放大模糊铺满，消除竖图两侧留白 -->
-          <img :src="post.coverUrl" alt="" aria-hidden="true" loading="lazy"
-               class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-60 dark:opacity-40">
-          <div class="absolute inset-0 bg-white/30 dark:bg-slate-950/40"></div>
-          <!-- 前景：原图按原始比例完整显示 -->
+        <!-- 封面图：w-fit 自适应容器 + 居中，容器宽度 = 图片宽度，无固定比例无留白 -->
+        <div v-else class="w-fit mx-auto group relative">
           <img :src="post.coverUrl" :alt="post.title" @click="openCover"
-               class="relative max-w-full w-auto h-auto max-h-[520px] mx-auto block cursor-zoom-in transition-opacity duration-500"
-               style="filter: drop-shadow(0 10px 30px rgba(0,0,0,.25))">
+               class="block max-w-full w-auto h-auto max-h-[70vh] rounded-2xl shadow-lg cursor-zoom-in transition-shadow hover:shadow-xl">
           <!-- 悬停提示 -->
-          <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <span class="flex items-center gap-1 text-[11.5px] text-white bg-black/50 backdrop-blur px-2.5 py-1 rounded-full">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               点击查看大图
             </span>
           </div>
-        </template>
+        </div>
       </div>
 
       <!-- 正文 + 目录 -->
