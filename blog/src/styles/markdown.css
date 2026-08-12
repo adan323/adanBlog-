@@ -63,6 +63,12 @@
 }
 .md-body img {
   @apply my-5 rounded-xl mx-auto shadow-lg max-h-[560px] object-contain;
+  cursor: zoom-in;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.md-body img:hover {
+  transform: scale(1.01);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, .18);
 }
 .md-body hr {
   @apply my-8 border-slate-200 dark:border-slate-800;

@@ -40,7 +40,7 @@
       </header>
 
       <!-- 封面图：无封面不渲染；有封面骨架屏占位，加载成功淡入，失败保持骨架 -->
-      <div v-if="post.coverUrl" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in relative bg-slate-100 dark:bg-slate-800">
+      <div v-if="post.coverUrl" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in relative bg-slate-100 dark:bg-slate-800 group">
         <div v-if="coverState !== 'ok'" class="skeleton flex items-center justify-center" style="height: 320px; width: 100%">
           <span class="relative z-10 flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
             <svg v-if="coverState !== 'error'" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 3a9 9 0 109 9h-3a6 6 0 11-6-6V3z"/></svg>
@@ -49,15 +49,22 @@
           </span>
         </div>
         <img :src="post.coverUrl" :alt="post.title" @load="coverState = 'ok'" @error="coverState = 'error'"
-             class="w-full max-h-[420px] object-cover transition-opacity duration-500"
+             @click="openCover" class="w-full max-h-[420px] object-cover cursor-zoom-in transition-opacity duration-500"
              :class="coverState === 'ok' ? 'opacity-100' : 'opacity-0'">
+        <!-- 悬停提示 -->
+        <div v-if="coverState === 'ok'" class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span class="flex items-center gap-1 text-[11.5px] text-white bg-black/50 backdrop-blur px-2.5 py-1 rounded-full">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            点击查看大图
+          </span>
+        </div>
       </div>
 
       <!-- 正文 + 目录 -->
       <div class="flex gap-10">
         <!-- 正文 -->
         <article class="flex-1 min-w-0 pb-16">
-          <div class="md-body" v-html="renderedContent" ref="articleBody"></div>
+          <div class="md-body" v-html="renderedContent" ref="articleBody" @click="onBodyClick"></div>
 
           <!-- 上一篇/下一篇 -->
           <nav class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid sm:grid-cols-2 gap-4">
@@ -92,11 +99,15 @@
       </div>
     </template>
   </div>
+
+  <!-- 图片查看器 -->
+  <Lightbox v-model:visible="lightboxVisible" :images="lightboxImages" :initial-index="lightboxIndex" />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import Lightbox from '../components/Lightbox.vue'
 import { api } from '../api'
 import { renderMarkdown, extractToc, readingTime, formatDate } from '../utils/markdown'
 
@@ -107,6 +118,9 @@ const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
 const coverState = ref('')
+const lightboxVisible = ref(false)
+const lightboxImages = ref([])
+const lightboxIndex = ref(0)
 
 const renderedContent = computed(() => renderMarkdown(post.value?.content || ''))
 const toc = computed(() => extractToc(post.value?.content || ''))
@@ -165,6 +179,28 @@ watch(() => route.params.slug, () => {
   post.value = null
   load()
 }, { immediate: true })
+
+/** 打开封面大图查看 */
+function openCover() {
+  if (coverState.value !== 'ok' || !post.value?.coverUrl) return
+  lightboxImages.value = [post.value.coverUrl]
+  lightboxIndex.value = 0
+  lightboxVisible.value = true
+}
+
+/** 正文图片点击：收集文章内所有图片，从点击的那张开始查看 */
+function onBodyClick(e) {
+  const target = e.target
+  if (target && target.tagName === 'IMG') {
+    const imgs = Array.from(articleBody.value?.querySelectorAll('img') || [])
+    const urls = imgs.map((i) => i.currentSrc || i.src)
+    if (urls.length === 0) return
+    const idx = Math.max(0, urls.indexOf(target.currentSrc || target.src))
+    lightboxImages.value = urls
+    lightboxIndex.value = idx
+    lightboxVisible.value = true
+  }
+}
 
 onMounted(() => {
   initScrollSpy()
