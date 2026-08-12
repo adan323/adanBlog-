@@ -1,0 +1,21 @@
+package com.adan.blog.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+
+/** SPA history 路由 fallback — 非 API 路径回 index.html */
+@Controller
+public class SpaController {
+
+    /** 博客前台 SPA */
+    @GetMapping({"/", "/post/**", "/archive", "/tags", "/tag/**", "/about"})
+    public String forwardBlog() {
+        return "forward:/index.html";
+    }
+
+    /** 管理后台 SPA（根路径 + 无扩展名子路径回 admin/index.html） */
+    @GetMapping({"/admin", "/admin/{path:[^\\.]*}"})
+    public String forwardAdmin() {
+        return "forward:/admin/index.html";
+    }
+}
