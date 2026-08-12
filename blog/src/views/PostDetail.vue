@@ -39,9 +39,12 @@
         </div>
       </header>
 
-      <!-- 封面图：有封面才加载，失败自动隐藏 -->
-      <div v-if="post.coverUrl && !coverFailed" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in">
-        <img :src="post.coverUrl" :alt="post.title" @error="coverFailed = true" class="w-full max-h-[420px] object-cover">
+      <!-- 封面图：无封面不渲染；有封面骨架屏占位，加载成功淡入，失败保持骨架 -->
+      <div v-if="post.coverUrl" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in relative bg-slate-100 dark:bg-slate-800">
+        <div v-if="coverState !== 'ok'" class="skeleton" style="height: 320px; width: 100%"></div>
+        <img :src="post.coverUrl" :alt="post.title" @load="coverState = 'ok'" @error="coverState = 'error'"
+             class="w-full max-h-[420px] object-cover transition-opacity duration-500"
+             :class="coverState === 'ok' ? 'opacity-100' : 'opacity-0'">
       </div>
 
       <!-- 正文 + 目录 -->
@@ -97,7 +100,7 @@ const loading = ref(true)
 const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
-const coverFailed = ref(false)
+const coverState = ref('')
 
 const renderedContent = computed(() => renderMarkdown(post.value?.content || ''))
 const toc = computed(() => extractToc(post.value?.content || ''))
@@ -106,7 +109,7 @@ async function load() {
   loading.value = true
   error.value = ''
   post.value = null
-  coverFailed.value = false
+  coverState.value = ''
   try {
     post.value = await api.getArticle(route.params.slug)
   } catch (e) {
