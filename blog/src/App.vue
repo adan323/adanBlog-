@@ -64,7 +64,7 @@
           <div class="flex items-center gap-5 text-slate-500 dark:text-slate-400">
             <a v-if="settings.github_url" :href="settings.github_url" target="_blank" rel="noopener" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[13.5px]">GitHub</a>
             <a v-if="settings.email" :href="'mailto:' + settings.email" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[13.5px]">{{ settings.email }}</a>
-            <RouterLink to="/admin" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[13.5px]">管理</RouterLink>
+            <a href="/admin" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[13.5px]">管理</a>
           </div>
         </div>
         <div class="mt-6 pt-6 border-t border-slate-200/60 dark:border-slate-800/60 text-center text-[12.5px] text-slate-400 dark:text-slate-500">

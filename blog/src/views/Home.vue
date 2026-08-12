@@ -66,13 +66,10 @@
                  class="card-hover group rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer shadow-sm hover:shadow-xl"
                  :style="{ animationDelay: (i % 2) * 0.08 + 's' }"
                  @click="goPost(post.slug)">
-          <!-- 封面 -->
-          <div class="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
-            <img v-if="post.coverUrl" :src="post.coverUrl" :alt="post.title" loading="lazy"
+          <!-- 封面：有封面才加载，加载失败自动隐藏 -->
+          <div v-if="post.coverUrl && !coverFailed[post.id]" class="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
+            <img :src="post.coverUrl" :alt="post.title" loading="lazy" @error="onCoverError(post.id)"
                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-            <div v-else class="w-full h-full flex items-center justify-center">
-              <svg class="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            </div>
             <!-- 悬停遮罩 -->
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -129,6 +126,12 @@ const settings = ref({})
 const stats = ref({})
 const typedText = ref('')
 const parallaxY = ref(0)
+const coverFailed = ref({})
+
+/** 封面加载失败时隐藏该封面区域 */
+function onCoverError(id) {
+  coverFailed.value = { ...coverFailed.value, [id]: true }
+}
 
 const typeLines = ['记录代码与生活的点滴', '写写技术，也写写生活', 'Stay hungry, stay foolish.']
 

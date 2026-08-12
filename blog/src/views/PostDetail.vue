@@ -39,9 +39,9 @@
         </div>
       </header>
 
-      <!-- 封面图 -->
-      <div v-if="post.coverUrl" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in">
-        <img :src="post.coverUrl" :alt="post.title" class="w-full max-h-[420px] object-cover">
+      <!-- 封面图：有封面才加载，失败自动隐藏 -->
+      <div v-if="post.coverUrl && !coverFailed" class="rounded-2xl overflow-hidden mb-10 shadow-lg animate-fade-in">
+        <img :src="post.coverUrl" :alt="post.title" @error="coverFailed = true" class="w-full max-h-[420px] object-cover">
       </div>
 
       <!-- 正文 + 目录 -->
@@ -97,6 +97,7 @@ const loading = ref(true)
 const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
+const coverFailed = ref(false)
 
 const renderedContent = computed(() => renderMarkdown(post.value?.content || ''))
 const toc = computed(() => extractToc(post.value?.content || ''))
@@ -105,6 +106,7 @@ async function load() {
   loading.value = true
   error.value = ''
   post.value = null
+  coverFailed.value = false
   try {
     post.value = await api.getArticle(route.params.slug)
   } catch (e) {
