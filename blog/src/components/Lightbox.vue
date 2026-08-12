@@ -146,18 +146,25 @@ function onWheel(e) {
 }
 
 // ===== 鼠标拖拽 =====
+// 关键：mousedown 不 preventDefault（否则浏览器不派发 dblclick，双击缩放失效），
+// 只有真正拖动（移动超过阈值）才进入拖拽并阻止默认
+const DRAG_THRESHOLD = 5
+
 function onDragStart(e) {
   if (scale.value <= 1) return
   dragging.value = true
   dragStart.value = { x: e.clientX, y: e.clientY }
   panStart.value = { x: panX.value, y: panY.value }
-  e.preventDefault()
 }
 
 function onDragMove(e) {
   if (!dragging.value) return
-  panX.value = panStart.value.x + (e.clientX - dragStart.value.x)
-  panY.value = panStart.value.y + (e.clientY - dragStart.value.y)
+  const dx = e.clientX - dragStart.value.x
+  const dy = e.clientY - dragStart.value.y
+  if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
+  e.preventDefault()
+  panX.value = panStart.value.x + dx
+  panY.value = panStart.value.y + dy
 }
 
 function onDragEnd() {

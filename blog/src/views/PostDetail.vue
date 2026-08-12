@@ -48,8 +48,9 @@
             {{ coverState === 'error' ? '封面加载失败' : '封面加载中…' }}
           </span>
         </div>
+        <!-- 封面完整显示：竖图/横图都按原始比例自适应缩放（w-auto），居中，最大高度限制 -->
         <img :src="post.coverUrl" :alt="post.title" @load="coverState = 'ok'" @error="coverState = 'error'"
-             @click="openCover" class="w-full max-h-[420px] object-cover cursor-zoom-in transition-opacity duration-500"
+             @click="openCover" class="max-w-full w-auto h-auto max-h-[520px] object-contain mx-auto block cursor-zoom-in transition-opacity duration-500 bg-slate-50 dark:bg-slate-900"
              :class="coverState === 'ok' ? 'opacity-100' : 'opacity-0'">
         <!-- 悬停提示 -->
         <div v-if="coverState === 'ok'" class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
