@@ -12,14 +12,10 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
-        <!-- 图片容器（拖拽视口）所有交互统一绑在 viewport 上 -->
-        <div class="lb-viewport"
-             @mousedown="onDragStart" @mousemove="onDragMove" @mouseup="onDragEnd" @mouseleave="onDragEnd"
-             @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd"
-             @dblclick="toggleZoom" @wheel="onWheel">
-          <img :src="images[current]" class="lb-image" :class="{ zoomed }"
-               :alt="'图片 ' + (current + 1)" :style="imgStyle" draggable="false" loading="lazy"
-               @dragstart.prevent>
+        <!-- 图片（完整显示，保持原始比例） -->
+        <div class="lb-viewport">
+          <img :src="images[current]" class="lb-image" :alt="'图片 ' + (current + 1)"
+               draggable="false" loading="lazy" @dragstart.prevent>
         </div>
 
         <!-- 下一张 -->
@@ -30,10 +26,7 @@
         <!-- 底部工具栏 -->
         <div class="lb-footer">
           <span v-if="images.length > 1" class="lb-count">{{ current + 1 }} / {{ images.length }}</span>
-          <span class="lb-hint">
-            {{ zoomed ? '拖拽移动 · 滚轮缩放' : '双击放大' }}
-          </span>
-          <span class="lb-sep"></span>
+          <span class="lb-sep" v-if="images.length > 1"></span>
           <button class="lb-download" @click="download" title="保存图片">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
             保存图片
@@ -45,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -56,47 +49,14 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'change'])
 
 const current = ref(0)
-const zoomed = ref(false)
-const scale = ref(1)
-const panX = ref(0)
-const panY = ref(0)
-
-// 拖拽状态
-const dragging = ref(false)
-const dragStart = ref({ x: 0, y: 0 })
-const panStart = ref({ x: 0, y: 0 })
-let touchCache = null
-
-const imgStyle = computed(() => {
-  const base = {
-    transform: `translate(${panX.value}px, ${panY.value}px) scale(${scale.value})`,
-  }
-  return base
-})
 
 watch(() => props.visible, (v) => {
-  if (v) {
-    current.value = props.initialIndex
-    resetView()
-  }
+  if (v) current.value = props.initialIndex
 })
 
 watch(() => props.initialIndex, (v) => {
   current.value = v
-  resetView()
 })
-
-watch(() => props.images, () => {
-  resetView()
-})
-
-function resetView() {
-  zoomed.value = false
-  scale.value = 1
-  panX.value = 0
-  panY.value = 0
-  dragging.value = false
-}
 
 function close() {
   emit('update:visible', false)
@@ -105,91 +65,13 @@ function close() {
 function prev() {
   if (props.images.length <= 1) return
   current.value = (current.value - 1 + props.images.length) % props.images.length
-  resetView()
   emit('change', current.value)
 }
 
 function next() {
   if (props.images.length <= 1) return
   current.value = (current.value + 1) % props.images.length
-  resetView()
   emit('change', current.value)
-}
-
-function toggleZoom() {
-  if (scale.value > 1) {
-    resetView()
-  } else {
-    zoomed.value = true
-    scale.value = 2
-    panX.value = 0
-    panY.value = 0
-  }
-}
-
-/** 滚轮缩放（以光标为中心） */
-function onWheel(e) {
-  if (!props.visible) return
-  e.preventDefault()
-  const delta = e.deltaY < 0 ? 0.1 : -0.1
-  const newScale = Math.min(5, Math.max(1, +(scale.value + delta).toFixed(2)))
-  if (newScale === scale.value) return
-  // 视口中心点作为缩放锚点
-  const rect = e.currentTarget.getBoundingClientRect()
-  const cx = e.clientX - rect.left - rect.width / 2
-  const cy = e.clientY - rect.top - rect.height / 2
-  const ratio = newScale / scale.value
-  panX.value = cx - (cx - panX.value) * ratio
-  panY.value = cy - (cy - panY.value) * ratio
-  scale.value = newScale
-  zoomed.value = scale.value > 1
-}
-
-// ===== 鼠标拖拽 =====
-// 关键：mousedown 不 preventDefault（否则浏览器不派发 dblclick，双击缩放失效），
-// 只有真正拖动（移动超过阈值）才进入拖拽并阻止默认
-const DRAG_THRESHOLD = 5
-
-function onDragStart(e) {
-  if (scale.value <= 1) return
-  dragging.value = true
-  dragStart.value = { x: e.clientX, y: e.clientY }
-  panStart.value = { x: panX.value, y: panY.value }
-}
-
-function onDragMove(e) {
-  if (!dragging.value) return
-  const dx = e.clientX - dragStart.value.x
-  const dy = e.clientY - dragStart.value.y
-  if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
-  // 注意：绝不 preventDefault —— 否则浏览器吞掉 dblclick，双击缩放失效。
-  // 防原生拖拽/选中已由 img draggable=false + user-select:none 保证。
-  panX.value = panStart.value.x + dx
-  panY.value = panStart.value.y + dy
-}
-
-function onDragEnd() {
-  dragging.value = false
-}
-
-// ===== 触摸拖拽 =====
-function onTouchStart(e) {
-  if (scale.value <= 1) return
-  const t = e.touches[0]
-  touchCache = { x: t.clientX, y: t.clientY, px: panX.value, py: panY.value }
-  e.preventDefault()
-}
-
-function onTouchMove(e) {
-  if (!touchCache) return
-  const t = e.touches[0]
-  panX.value = touchCache.px + (t.clientX - touchCache.x)
-  panY.value = touchCache.py + (t.clientY - touchCache.y)
-  e.preventDefault()
-}
-
-function onTouchEnd() {
-  touchCache = null
 }
 
 /** 保存图片到本地 */
@@ -198,7 +80,6 @@ async function download() {
   if (!url) return
   const filename = url.split('/').pop().split('?')[0] || `image-${current + 1}.jpg`
   try {
-    // 同源图片用 fetch blob 下载（可控文件名）
     const res = await fetch(url)
     if (!res.ok) throw new Error('fetch fail')
     const blob = await res.blob()
@@ -211,7 +92,6 @@ async function download() {
     a.remove()
     setTimeout(() => URL.revokeObjectURL(objectUrl), 3000)
   } catch {
-    // 跨域/失败 fallback：新窗口打开
     window.open(url, '_blank')
   }
 }
@@ -221,9 +101,6 @@ function onKeydown(e) {
   if (e.key === 'Escape') close()
   else if (e.key === 'ArrowLeft') prev()
   else if (e.key === 'ArrowRight') next()
-  else if (e.key === '+' || e.key === '=') { if (scale.value < 5) scale.value = +(scale.value + 0.5).toFixed(1) }
-  else if (e.key === '-') { if (scale.value > 1) scale.value = +(scale.value - 0.5).toFixed(1) }
-  else if (e.key === '0') resetView()
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
@@ -241,7 +118,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   justify-content: center;
   backdrop-filter: blur(8px);
   overflow: hidden;
-  touch-action: none;
 }
 .lb-viewport {
   width: 100%;
@@ -250,11 +126,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  cursor: grab;
+  cursor: default;
   user-select: none;
   -webkit-user-select: none;
 }
-.lb-viewport:active { cursor: grabbing; }
 .lb-btn {
   position: fixed;
   z-index: 10001;
@@ -276,7 +151,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .lb-next { right: 20px; top: 50%; transform: translateY(-50%); }
 .lb-prev:hover, .lb-next:hover { transform: translateY(-50%) scale(1.05); }
 .lb-image {
-  /* 关键：flex 容器里防止 min-width:auto 撑破，竖图完整显示 */
+  /* 完整显示：保持原始比例，max 约束 + contain 兜底 */
   min-width: 0;
   min-height: 0;
   max-width: 92vw;
@@ -286,9 +161,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
-  transition: transform .15s ease-out;
-  will-change: transform;
-  pointer-events: none;
 }
 .lb-footer {
   position: fixed;
@@ -308,7 +180,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   white-space: nowrap;
 }
 .lb-count { color: #e2e8f0; font-weight: 600; }
-.lb-hint { opacity: .8; }
 .lb-sep { width: 1px; height: 14px; background: rgba(148,163,184,.3); }
 .lb-download {
   display: flex;
@@ -334,6 +205,5 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   .lb-prev { left: 10px; }
   .lb-next { right: 10px; }
   .lb-footer { font-size: 12px; padding: 6px 14px; gap: 8px; }
-  .lb-hint { display: none; }
 }
 </style>
