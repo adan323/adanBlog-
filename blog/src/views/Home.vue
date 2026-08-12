@@ -16,7 +16,7 @@
             欢迎来到 {{ settings.site_title || '我的博客' }}
           </div>
           <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-5 animate-fade-up" style="animation-delay:.1s">
-            <span class="type-cursor">{{ typedText }}</span>
+            <span :class="typingDone ? '' : 'type-cursor'">{{ typedText }}</span>
           </h1>
           <p class="text-slate-500 dark:text-slate-400 text-[16px] max-w-xl mx-auto animate-fade-up" style="animation-delay:.2s">
             {{ settings.site_subtitle || '记录代码与生活的碎片' }}
@@ -150,11 +150,12 @@ function onCoverError(id) {
 }
 
 const typeText = '记录代码与生活的点滴'
+const typingDone = ref(false)
 
 let typeTimer = null
 let scrollHandler = null
 
-/** 打字机效果：页面加载后播放一次，播完停在完整文本（不循环，避免移动端高度跳动） */
+/** 打字机效果：页面加载后播放一次，播完停在完整文本并隐去光标（不循环，避免移动端高度跳动） */
 function typeWriter() {
   let char = 0
   typeTimer = setInterval(() => {
@@ -163,6 +164,8 @@ function typeWriter() {
     if (char >= typeText.length) {
       clearInterval(typeTimer)
       typeTimer = null
+      // 稍等片刻再隐去光标，让最后一下"落笔"更自然
+      setTimeout(() => { typingDone.value = true }, 600)
     }
   }, 90)
 }
