@@ -45,12 +45,11 @@
     </nav>
 
     <!-- 主内容 -->
+    <!-- 注意：不用 <Transition mode="out-in"> 包 RouterView——
+         异步路由组件(懒加载)离开时 out-in 会挂起导致页面空白(Vue 3 已知坑)，
+         页面入场动画由各组件自身 CSS 动画实现 -->
     <main class="flex-1 pt-16">
-      <RouterView v-slot="{ Component }">
-        <Transition name="page" mode="out-in">
-          <component :is="Component" />
-        </Transition>
-      </RouterView>
+      <RouterView />
     </main>
 
     <!-- 页脚 -->

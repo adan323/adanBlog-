@@ -1,5 +1,5 @@
 <template>
-  <div class="container-blog py-12">
+  <div class="container-blog py-12 fade-in-page">
     <header class="pt-6 pb-12 text-center">
       <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-5 shadow-lg animate-float">
         {{ (settings.author_name || 'a').charAt(0).toUpperCase() }}

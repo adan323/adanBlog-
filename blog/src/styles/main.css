@@ -63,19 +63,13 @@
   animation: blink 1s step-end infinite;
 }
 
-/* 页面过渡 */
-.page-enter-active {
-  transition: opacity .4s ease, transform .4s ease;
+/* 通用淡入动画（替代页面级 Transition，各组件根元素使用） */
+.fade-in-page {
+  animation: fadeInUp .45s ease both;
 }
-.page-enter-from {
-  opacity: 0;
-  transform: translateY(12px);
-}
-.page-leave-active {
-  transition: opacity .25s ease;
-}
-.page-leave-to {
-  opacity: 0;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* 骨架屏闪烁 */

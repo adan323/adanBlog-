@@ -1,5 +1,5 @@
 <template>
-  <div class="container-blog py-12">
+  <div class="container-blog py-12 fade-in-page">
     <header class="pt-6 pb-10">
       <RouterLink to="/tags" class="text-[13px] text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block">← 全部标签</RouterLink>
       <h1 class="text-3xl font-bold tracking-tight mb-3">

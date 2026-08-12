@@ -1,5 +1,5 @@
 <template>
-  <div class="container-blog">
+  <div class="container-blog fade-in-page">
     <div v-if="loading" class="py-16">
       <div class="skeleton h-8 w-2/3 mb-6 rounded"></div>
       <div class="skeleton h-4 w-full mb-3 rounded"></div>
@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Lightbox from '../components/Lightbox.vue'
 import { api } from '../api'
@@ -211,5 +211,9 @@ function onBodyClick(e) {
 
 onMounted(() => {
   initScrollSpy()
+})
+
+onUnmounted(() => {
+  if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
 })
 </script>

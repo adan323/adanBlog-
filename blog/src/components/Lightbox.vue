@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
-    <Transition name="lightbox">
-      <div v-if="visible" class="lightbox" @click.self="close">
+    <!-- 不用 <Transition>：与页面级 Transition 嵌套会卡死路由切换 -->
+    <div v-if="visible" class="lightbox lb-fade" @click.self="close">
         <!-- 关闭按钮 -->
         <button class="lb-btn lb-close" @click="close" title="关闭 (Esc)">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
@@ -33,8 +33,7 @@
           </button>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+    </Teleport>
 </template>
 
 <script setup>
@@ -196,9 +195,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 }
 .lb-download:hover { background: rgba(59, 130, 246, .45); color: #fff; }
 
-/* 过渡动画 */
-.lightbox-enter-active, .lightbox-leave-active { transition: opacity .25s ease; }
-.lightbox-enter-from, .lightbox-leave-to { opacity: 0; }
+/* 淡入动画（替代 Transition，避免嵌套卡死路由切换） */
+.lb-fade { animation: lbFadeIn .2s ease; }
+@keyframes lbFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @media (max-width: 768px) {
   .lb-btn { width: 38px; height: 38px; }
   .lb-close { top: 14px; right: 14px; }

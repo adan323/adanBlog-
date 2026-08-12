@@ -1,5 +1,5 @@
 <template>
-  <div class="container-blog py-12">
+  <div class="container-blog py-12 fade-in-page">
     <header class="pt-6 pb-10">
       <h1 class="text-3xl font-bold tracking-tight mb-3">归档</h1>
       <p class="text-slate-500 dark:text-slate-400 text-[14.5px]">按时间顺序记录的所有文章</p>
