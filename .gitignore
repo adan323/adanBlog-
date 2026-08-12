@@ -1,12 +1,12 @@
 # ===== Java / Maven =====
-backend/target/
+system/target/
 *.class
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
 
 # ===== Node =====
 node_modules/
-frontend/dist/
+blog/dist/
 admin/dist/
 npm-debug.log*
 yarn-error.log*

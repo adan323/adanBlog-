@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/java -Xms64m -Xmx256m -XX:+UseSerialGC -jar /opt/adan-blog/backend/target/adan-blog-1.0.0.jar
+ExecStart=/usr/bin/java -Xms64m -Xmx256m -XX:+UseSerialGC -jar /opt/adan-blog/system/target/adan-blog-1.0.0.jar
 Restart=always
 RestartSec=5
 WorkingDirectory=/opt/adan-blog
