@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="lightbox">
-      <div v-if="visible" class="lightbox" @click.self="close" @wheel="onWheel">
+      <div v-if="visible" class="lightbox" @click.self="close">
         <!-- 关闭按钮 -->
         <button class="lb-btn lb-close" @click="close" title="关闭 (Esc)">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
@@ -12,11 +12,12 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
-        <!-- 图片容器（拖拽视口） -->
+        <!-- 图片容器（拖拽视口）所有交互统一绑在 viewport 上 -->
         <div class="lb-viewport"
              @mousedown="onDragStart" @mousemove="onDragMove" @mouseup="onDragEnd" @mouseleave="onDragEnd"
-             @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
-          <img :src="images[current]" class="lb-image" :class="{ zoomed }" @dblclick="toggleZoom"
+             @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd"
+             @dblclick="toggleZoom" @wheel="onWheel">
+          <img :src="images[current]" class="lb-image" :class="{ zoomed }"
                :alt="'图片 ' + (current + 1)" :style="imgStyle" draggable="false" loading="lazy"
                @dragstart.prevent>
         </div>
@@ -267,8 +268,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .lb-next { right: 20px; top: 50%; transform: translateY(-50%); }
 .lb-prev:hover, .lb-next:hover { transform: translateY(-50%) scale(1.05); }
 .lb-image {
+  /* 关键：flex 容器里防止 min-width:auto 撑破，竖图完整显示 */
+  min-width: 0;
+  min-height: 0;
   max-width: 92vw;
   max-height: 88vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
