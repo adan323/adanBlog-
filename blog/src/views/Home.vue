@@ -68,8 +68,14 @@
                  @click="goPost(post.slug)">
           <!-- 封面：无封面不渲染；有封面时骨架屏占位，加载成功淡入图片，失败保持骨架 -->
           <div v-if="post.coverUrl" class="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
-            <!-- 骨架屏：加载中 / 加载失败时显示 -->
-            <div v-if="coverState[post.id] !== 'ok'" class="w-full h-full skeleton"></div>
+            <!-- 骨架屏：加载中显示"正在加载"，失败显示"加载失败" -->
+            <div v-if="coverState[post.id] !== 'ok'" class="w-full h-full skeleton flex items-center justify-center">
+              <span class="relative z-10 flex items-center gap-1.5 text-[12.5px] text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+                <svg v-if="coverState[post.id] !== 'error'" class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 3a9 9 0 109 9h-3a6 6 0 11-6-6V3z"/></svg>
+                <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                {{ coverState[post.id] === 'error' ? '封面加载失败' : '封面加载中…' }}
+              </span>
+            </div>
             <!-- 图片始终加载（opacity 控制显示，避免 v-show 阻止加载） -->
             <img :src="post.coverUrl" :alt="post.title" loading="lazy"
                  @load="onCoverLoad(post.id)" @error="onCoverError(post.id)"
