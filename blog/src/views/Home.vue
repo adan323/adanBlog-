@@ -149,32 +149,20 @@ function onCoverError(id) {
   coverState.value = { ...coverState.value, [id]: 'error' }
 }
 
-const typeLines = ['记录代码与生活的点滴', '写写技术，也写写生活', 'Stay hungry, stay foolish.']
+const typeText = '记录代码与生活的点滴'
 
 let typeTimer = null
 let scrollHandler = null
 
+/** 打字机效果：页面加载后播放一次，播完停在完整文本（不循环，避免移动端高度跳动） */
 function typeWriter() {
-  let line = 0
   let char = 0
-  let deleting = false
   typeTimer = setInterval(() => {
-    const current = typeLines[line]
-    if (!deleting) {
-      char++
-      typedText.value = current.slice(0, char)
-      if (char === current.length) {
-        deleting = true
-        setTimeout(() => {}, 1500)
-        clearInterval(typeTimer)
-        setTimeout(() => {
-          deleting = false
-          char = 0
-          line = (line + 1) % typeLines.length
-          typedText.value = ''
-          typeWriter()
-        }, 1800)
-      }
+    char++
+    typedText.value = typeText.slice(0, char)
+    if (char >= typeText.length) {
+      clearInterval(typeTimer)
+      typeTimer = null
     }
   }, 90)
 }
