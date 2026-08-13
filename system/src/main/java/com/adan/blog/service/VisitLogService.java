@@ -119,12 +119,13 @@ public class VisitLogService {
     String parseBrowser(String ua) {
         if (ua == null || ua.isBlank()) return "未知";
         String s = ua.toLowerCase();
+        // 注意顺序：Opera/Edge/微信 的 UA 里都含 "chrome"，必须优先匹配
+        if (s.contains("micromessenger")) return "微信";
+        if (s.contains("opr/") || s.contains("opera")) return "Opera";
         if (s.contains("edg/")) return "Edge";
         if (s.contains("chrome/")) return "Chrome";
         if (s.contains("firefox/")) return "Firefox";
         if (s.contains("safari/")) return "Safari";
-        if (s.contains("micromessenger")) return "微信";
-        if (s.contains("opr/") || s.contains("opera")) return "Opera";
         if (s.contains("trident/") || s.contains("msie")) return "IE";
         return "其他";
     }
