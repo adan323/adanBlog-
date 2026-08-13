@@ -3,31 +3,31 @@
     <!-- 移动端遮罩 -->
     <div v-if="isMobile && sidebarOpen" class="sidebar-mask" @click="sidebarOpen = false"></div>
 
-    <!-- 侧边栏：移动端为抽屉，桌面端固定 -->
-    <el-aside :width="isMobile ? (sidebarOpen ? '240px' : '0px') : '210px'"
-              class="admin-aside" :class="{ 'mobile-open': isMobile && sidebarOpen }">
+    <!-- 侧边栏：移动端为抽屉，桌面端可折叠 -->
+    <el-aside :width="asideWidth"
+              class="admin-aside" :class="{ 'mobile-open': isMobile && sidebarOpen, 'collapsed': !isMobile && collapsed }">
       <div class="admin-logo">
         <span class="logo-badge">A</span>
-        <span v-if="!isMobile || sidebarOpen">adan 博客后台</span>
+        <span v-if="!isMobile || sidebarOpen">{{ collapsed ? '' : 'adan 博客后台' }}</span>
       </div>
       <el-menu :default-active="activeMenu" router class="admin-menu" @select="onMenuSelect">
         <el-menu-item index="/dashboard">
-          <el-icon><DataBoard /></el-icon><span>数据看板</span>
+          <el-icon><DataBoard /></el-icon><span v-show="!collapsed || isMobile">数据看板</span>
         </el-menu-item>
         <el-menu-item index="/articles">
-          <el-icon><Document /></el-icon><span>文章管理</span>
+          <el-icon><Document /></el-icon><span v-show="!collapsed || isMobile">文章管理</span>
         </el-menu-item>
         <el-menu-item index="/articles/new">
-          <el-icon><EditPen /></el-icon><span>写文章</span>
+          <el-icon><EditPen /></el-icon><span v-show="!collapsed || isMobile">写文章</span>
         </el-menu-item>
         <el-menu-item index="/tags">
-          <el-icon><CollectionTag /></el-icon><span>标签管理</span>
+          <el-icon><CollectionTag /></el-icon><span v-show="!collapsed || isMobile">标签管理</span>
         </el-menu-item>
         <el-menu-item index="/settings">
-          <el-icon><Setting /></el-icon><span>站点设置</span>
+          <el-icon><Setting /></el-icon><span v-show="!collapsed || isMobile">站点设置</span>
         </el-menu-item>
         <el-menu-item index="/password">
-          <el-icon><Lock /></el-icon><span>修改密码</span>
+          <el-icon><Lock /></el-icon><span v-show="!collapsed || isMobile">修改密码</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -35,8 +35,8 @@
     <el-container>
       <el-header class="admin-header">
         <div class="flex items-center gap-3">
-          <!-- 移动端汉堡按钮 -->
-          <button v-if="isMobile" class="menu-toggle" @click="sidebarOpen = !sidebarOpen">
+          <!-- 折叠/展开按钮（桌面端折叠侧边栏，移动端开抽屉） -->
+          <button class="menu-toggle" @click="toggleSidebar" :title="isMobile ? '打开菜单' : (collapsed ? '展开侧边栏' : '收起侧边栏')">
             <el-icon :size="20"><Menu /></el-icon>
           </button>
           <el-tag size="small" type="primary" effect="light">后台管理</el-tag>
@@ -73,6 +73,12 @@ const router = useRouter()
 const username = localStorage.getItem('admin_username') || 'admin'
 const isMobile = ref(false)
 const sidebarOpen = ref(false)
+const collapsed = ref(false)  // 桌面端折叠状态
+
+const asideWidth = computed(() => {
+  if (isMobile.value) return sidebarOpen.value ? '240px' : '0px'
+  return collapsed.value ? '0px' : '210px'
+})
 
 const activeMenu = computed(() => {
   const p = route.path
@@ -81,8 +87,20 @@ const activeMenu = computed(() => {
 })
 
 function checkMobile() {
-  isMobile.value = window.innerWidth < 900
+  // 视口宽度 + UA 双重判定，避免部分手机浏览器视口异常导致误判为桌面端
+  const ua = navigator.userAgent || ''
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua)
+  isMobile.value = window.innerWidth < 900 || (isMobileUA && window.innerWidth < 1024)
   if (!isMobile.value) sidebarOpen.value = false
+}
+
+/** 桌面端折叠/展开侧边栏；移动端开抽屉 */
+function toggleSidebar() {
+  if (isMobile.value) {
+    sidebarOpen.value = !sidebarOpen.value
+  } else {
+    collapsed.value = !collapsed.value
+  }
 }
 
 function handleCommand(cmd) {
@@ -95,9 +113,13 @@ function handleCommand(cmd) {
   }
 }
 
-/** 移动端点击菜单项后收起侧边栏 */
+/** 移动端点击菜单项后收起抽屉；桌面端折叠时点击自动展开 */
 function onMenuSelect() {
-  if (isMobile.value) sidebarOpen.value = false
+  if (isMobile.value) {
+    sidebarOpen.value = false
+  } else if (collapsed.value) {
+    collapsed.value = false
+  }
 }
 
 onMounted(() => {
@@ -123,6 +145,10 @@ onUnmounted(() => window.removeEventListener('resize', checkMobile))
   bottom: 0;
   z-index: 1001;
   box-shadow: 0 0 30px rgba(0,0,0,.3);
+}
+/* 桌面端折叠：只剩图标宽度过渡 */
+.admin-aside {
+  transition: width .25s ease;
 }
 .sidebar-mask {
   position: fixed;
