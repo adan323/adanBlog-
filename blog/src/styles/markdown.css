@@ -76,3 +76,20 @@
 .md-body .katex-display {
   @apply my-5 overflow-x-auto py-2;
 }
+/* mermaid 图表 / 思维导图 */
+.md-body .mermaid {
+  @apply my-6 bg-white rounded-xl shadow-sm border border-slate-200;
+  padding: 18px 12px;
+  overflow-x: auto;
+  text-align: center;
+}
+.md-body .mermaid svg {
+  max-width: 100%;
+  min-width: min(560px, 100%);
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+.md-body .mermaid.error {
+  @apply text-rose-500 text-sm text-left font-mono;
+}

@@ -153,7 +153,38 @@ async function load() {
           if (id) el.id = id
         })
       }
+      renderMermaid()
     }, 50)
+  }
+}
+
+/** 懒加载 mermaid 并绘制文章内的图表/思维导图（仅当存在 .mermaid 时才加载） */
+let mermaidPromise = null
+async function renderMermaid() {
+  const body = articleBody.value
+  if (!body) return
+  const nodes = Array.from(body.querySelectorAll('.mermaid:not([data-processed])'))
+  if (!nodes.length) return
+  try {
+    if (!mermaidPromise) mermaidPromise = import('mermaid')
+    const { default: mermaid } = await mermaidPromise
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'loose',
+      theme: 'default',
+      fontFamily: 'inherit',
+    })
+    for (const el of nodes) {
+      try {
+        await mermaid.run({ nodes: [el] })
+        el.setAttribute('data-processed', 'true')
+      } catch (e) {
+        el.classList.add('error')
+        el.textContent = '（' + (el.dataset.src || 'mermaid') + ' 图渲染失败：' + (e && e.message || e) + '）'
+      }
+    }
+  } catch (e) {
+    console.error('mermaid 加载失败:', e)
   }
 }
 

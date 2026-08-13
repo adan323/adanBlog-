@@ -25,12 +25,17 @@ function renderInlineMath(md) {
   }
 }
 
-/** 块级公式渲染器（$$...$$） */
-function renderBlockMath(md) {
+/** 块级公式渲染器（```math）+ mermaid 图表/思维导图（```mermaid / ```mindmap） */
+function renderBlockFence(md) {
   const defaultFence = md.renderer.rules.fence
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
-    if (token.info && token.info.trim() === 'math') {
+    const info = (token.info || '').trim().toLowerCase()
+    // mermaid 图表（含 mindmap 思维导图）：渲染为容器，由前端 mermaid 引擎绘制
+    if (info === 'mermaid' || info === 'mindmap') {
+      return `<div class="mermaid" data-src="${md.utils.escapeHtml(token.info.trim())}">${md.utils.escapeHtml(token.content)}</div>`
+    }
+    if (info === 'math') {
       try {
         return `<div class="katex-display">${katex.renderToString(token.content, { displayMode: true, throwOnError: false })}</div>`
       } catch {
@@ -55,7 +60,7 @@ export const md = new MarkdownIt({
   },
 })
 
-md.use(renderInlineMath).use(renderBlockMath)
+md.use(renderInlineMath).use(renderBlockFence)
 
 /** 渲染 Markdown 为 HTML */
 export function renderMarkdown(content) {

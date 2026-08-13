@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "vue-router": "^4.3.0",
-    "markdown-it": "^14.1.0",
     "highlight.js": "^11.9.0",
-    "katex": "^0.16.9"
+    "katex": "^0.16.9",
+    "markdown-it": "^14.1.0",
+    "mermaid": "^11.16.1",
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
