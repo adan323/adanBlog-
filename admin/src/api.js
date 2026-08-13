@@ -33,6 +33,7 @@ export const adminApi = {
   updateArticle: (id, data) => request(`/admin/articles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteArticle: (id) => request(`/admin/articles/${id}`, { method: 'DELETE' }),
   getStats: () => request('/admin/stats'),
+  getTraffic: (days = 7) => request(`/admin/stats/traffic?days=${days}`),
   getTags: () => request('/tags'),
   getSettings: () => request('/admin/settings'),
   updateSettings: (data) => request('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
