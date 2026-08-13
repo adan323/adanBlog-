@@ -3,6 +3,7 @@ package com.adan.blog.repository;
 import com.adan.blog.entity.Tag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,4 +16,7 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
 
     @Query("SELECT t, COUNT(a) as cnt FROM Tag t LEFT JOIN t.articles a GROUP BY t ORDER BY cnt DESC")
     List<Object[]> findWithCounts();
+
+    @Query("SELECT COUNT(a) FROM Tag t LEFT JOIN t.articles a WHERE t.slug = :slug")
+    long countArticlesBySlug(@Param("slug") String slug);
 }

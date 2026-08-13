@@ -76,6 +76,12 @@ public class PublicController {
         return ResponseEntity.ok(tagService.listWithCounts());
     }
 
+    /** 单个标签信息（带文章数） */
+    @GetMapping("/tags/{slug}")
+    public ResponseEntity<Map<String, Object>> tag(@PathVariable String slug) {
+        return ResponseEntity.ok(tagService.getBySlug(slug));
+    }
+
     /** 站点公开设置 */
     @GetMapping("/settings")
     public ResponseEntity<Map<String, String>> settings() {

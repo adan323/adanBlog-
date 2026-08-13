@@ -19,10 +19,11 @@ async function request(path, options = {}) {
 export const api = {
   // 公开
   listArticles: (page = 1, size = 6, tag = '') =>
-    request(`/articles?page=${page}&size=${size}${tag ? `&tag=${tag}` : ''}`),
+    request(`/articles?page=${page}&size=${size}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}`),
   getArticle: (slug) => request(`/articles/${slug}`),
   getArchive: () => request('/archive'),
   getTags: () => request('/tags'),
+  getTag: (slug) => request(`/tags/${encodeURIComponent(slug)}`),
   getSettings: () => request('/settings'),
   getStats: () => request('/public/stats'),
   search: (q) => request(`/search?q=${encodeURIComponent(q)}`),

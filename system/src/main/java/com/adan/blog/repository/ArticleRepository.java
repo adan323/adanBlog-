@@ -28,8 +28,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query("SELECT a FROM Article a WHERE a.status = 'published' AND a.title LIKE %:kw% ORDER BY a.createdAt DESC")
     List<Article> searchByKeyword(@Param("kw") String keyword);
 
-    @Query("SELECT YEAR(a.createdAt) as y, MONTH(a.createdAt) as m, COUNT(a) as c FROM Article a WHERE a.status = 'published' GROUP BY YEAR(a.createdAt), MONTH(a.createdAt) ORDER BY y DESC, m DESC")
-    List<Object[]> countByYearMonth();
+    /** 归档专用轻量投影：只取列表需要的字段，避免把 CLOB 正文拉进内存（大数据量关键） */
+    @Query("SELECT a.id, a.title, a.slug, a.createdAt, a.views FROM Article a WHERE a.status = 'published' ORDER BY a.createdAt DESC")
+    List<Object[]> findArchiveProjection();
 
     @Query("SELECT COUNT(a) FROM Article a WHERE a.status = 'published'")
     long countPublished();

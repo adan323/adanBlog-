@@ -97,18 +97,49 @@ public class ArticleService {
                 .collect(Collectors.toList());
     }
 
+    /** 归档：一次返回完整归档树（年 > 月 > 文章轻量列表），单次投影查询 + 内存分组，
+     *  不翻页、不拉正文，文章量再大也只有一个查询 */
     public Map<String, Object> archive() {
-        List<Object[]> rows = articleRepository.countByYearMonth();
-        List<Map<String, Object>> months = new ArrayList<>();
+        List<Object[]> rows = articleRepository.findArchiveProjection();
+        Map<Integer, Map<Integer, List<Map<String, Object>>>> yearMap =
+                new TreeMap<>(Collections.reverseOrder());
         for (Object[] row : rows) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("year", row[0]);
-            m.put("month", row[1]);
-            m.put("count", row[2]);
-            months.add(m);
+            Long id = (Long) row[0];
+            String title = (String) row[1];
+            String slug = (String) row[2];
+            LocalDateTime createdAt = (LocalDateTime) row[3];
+            Long views = (Long) row[4];
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("id", id);
+            p.put("title", title);
+            p.put("slug", slug);
+            p.put("day", createdAt.getDayOfMonth());
+            p.put("views", views);
+            yearMap.computeIfAbsent(createdAt.getYear(), k -> new TreeMap<>(Collections.reverseOrder()))
+                    .computeIfAbsent(createdAt.getMonthValue(), k -> new ArrayList<>())
+                    .add(p);
+        }
+        List<Map<String, Object>> years = new ArrayList<>();
+        for (Map.Entry<Integer, Map<Integer, List<Map<String, Object>>>> ye : yearMap.entrySet()) {
+            Map<String, Object> yMap = new LinkedHashMap<>();
+            yMap.put("year", ye.getKey());
+            List<Map<String, Object>> months = new ArrayList<>();
+            int yearTotal = 0;
+            for (Map.Entry<Integer, List<Map<String, Object>>> me : ye.getValue().entrySet()) {
+                Map<String, Object> mMap = new LinkedHashMap<>();
+                mMap.put("month", me.getKey());
+                mMap.put("total", me.getValue().size());
+                mMap.put("posts", me.getValue());
+                months.add(mMap);
+                yearTotal += me.getValue().size();
+            }
+            yMap.put("months", months);
+            yMap.put("total", yearTotal);
+            years.add(yMap);
         }
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("months", months);
+        result.put("total", rows.size());
+        result.put("years", years);
         return result;
     }
 
