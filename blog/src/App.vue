@@ -52,6 +52,9 @@
       <RouterView />
     </main>
 
+    <!-- 全局悬浮音乐播放器 -->
+    <MusicPlayer />
+
     <!-- 页脚 -->
     <footer class="border-t border-slate-200 dark:border-slate-800 bg-paper-soft dark:bg-slate-950">
       <div class="container-blog py-12">
@@ -79,6 +82,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from './api'
+import MusicPlayer from './components/MusicPlayer.vue'
 
 const route = useRoute()
 const scrolled = ref(false)

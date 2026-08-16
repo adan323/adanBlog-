@@ -3,6 +3,7 @@ package com.adan.blog.controller;
 import com.adan.blog.dto.ArticleDetail;
 import com.adan.blog.dto.ArticleSummary;
 import com.adan.blog.service.ArticleService;
+import com.adan.blog.service.MusicService;
 import com.adan.blog.service.SettingService;
 import com.adan.blog.service.TagService;
 import com.adan.blog.service.VisitLogService;
@@ -24,6 +25,7 @@ public class PublicController {
     private final TagService tagService;
     private final SettingService settingService;
     private final VisitLogService visitLogService;
+    private final MusicService musicService;
 
     /** 文章列表（分页） */
     @GetMapping("/articles")
@@ -109,5 +111,12 @@ public class PublicController {
         result.put("views", daily.stream().map(d -> d.get("pv")).toList());
         result.put("overview", visitLogService.overview());
         return ResponseEntity.ok(result);
+    }
+
+    /** 音乐列表（aplayer 播放器数据源）：扫描音乐目录，
+     * 返回 [{title, artist, url, lrc}]，音频经 /music/** 静态映射提供 */
+    @GetMapping("/public/music")
+    public ResponseEntity<List<Map<String, Object>>> music() {
+        return ResponseEntity.ok(musicService.list());
     }
 }

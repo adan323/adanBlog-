@@ -41,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                         // 博客前台 SPA + 静态资源
                         .requestMatchers("/", "/index.html", "/post/**", "/archive", "/tags", "/tag/**", "/about",
-                                "/assets/**", "/vendor/**", "/favicon.ico", "/uploads/**").permitAll()
+                                "/assets/**", "/vendor/**", "/favicon.ico", "/uploads/**", "/music/**").permitAll()
                         // 管理后台 SPA + 静态资源
                         .requestMatchers("/admin", "/admin/", "/admin/**", "/admin/assets/**").permitAll()
                         // 其余需要登录
