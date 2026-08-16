@@ -4,7 +4,28 @@ import { config } from 'md-editor-v3'
 
 const V = '/admin/vendor/'
 
+// 禁用 mermaid mindmap 思维导图（效果不好，2026-08 用户明确不要）。
+// 拦截方式：core 阶段把以 mindmap 开头的 mermaid fence 降级为普通代码块，
+// md-editor-v3 的 renderer 只在 info==='mermaid' 时才走 mermaid 渲染，其余图不受影响。
+function disableMindmap(md) {
+  md.core.ruler.push('disable-mindmap', (state) => {
+    for (const token of state.tokens) {
+      if (
+        token.type === 'fence' &&
+        token.info.trim() === 'mermaid' &&
+        token.content.trim().startsWith('mindmap')
+      ) {
+        token.info = 'text'
+      }
+    }
+  })
+}
+
 config({
+  markdownItPlugins: (plugins) => [
+    ...plugins,
+    { type: 'disable-mindmap', plugin: disableMindmap, options: {} },
+  ],
   editorExtensions: {
     highlight: {
       js: `${V}highlight.min.js`,
