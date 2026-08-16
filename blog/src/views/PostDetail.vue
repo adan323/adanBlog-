@@ -45,6 +45,7 @@
         <article class="flex-1 min-w-0 pb-16">
           <div class="post-content" ref="articleBody">
             <MdPreview
+              ref="mdPreviewRef"
               :model-value="previewContent"
               :theme="isDark ? 'dark' : 'light'"
               :md-heading-id="headingId"
@@ -103,6 +104,7 @@ const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
 const isDark = ref(false)
+const mdPreviewRef = ref(null)
 
 const toc = computed(() => extractToc(post.value?.content || ''))
 
@@ -122,6 +124,58 @@ function headingId({ text }) {
 
 function onHtmlChanged() {
   initScrollSpy()
+  ensureMermaidRendered()
+}
+
+/**
+ * mermaid 渲染兜底：md-editor-v3 在 HTML 渲染完成时检查 mermaid 实例，
+ * 若 mermaid.min.js（2.8MB，挂载后才异步注入）还没加载完会静默跳过且不重试，
+ * 导致思维导图/图表"时灵时不灵"。这里检测到"有 mermaid 容器但无 SVG"时，
+ * 等 mermaid script 就绪后调用 MdPreview.rerender() 强制重新渲染。
+ */
+let mermaidRetryTimer = null
+let mermaidRetryCount = 0
+function ensureMermaidRendered() {
+  const body = articleBody.value
+  if (!body) return
+  const containers = body.querySelectorAll('.md-editor-mermaid')
+  if (!containers.length) return
+  const rendered = body.querySelectorAll('.md-editor-mermaid svg').length
+  if (rendered >= containers.length) return
+  // md-editor-v3 因 mermaid.js 加载慢而跳过渲染时，等 window.mermaid 就绪后
+  // 手动渲染缺失的容器（最多重试 30 次 ≈ 15s）
+  clearTimeout(mermaidRetryTimer)
+  const tryRender = async () => {
+    mermaidRetryCount++
+    if (window.mermaid) {
+      mermaidRetryCount = 0
+      try {
+        window.mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'loose',
+          theme: isDark.value ? 'dark' : 'base',
+        })
+        const nodes = Array.from(body.querySelectorAll('.md-editor-mermaid:not([data-processed])'))
+        for (const el of nodes) {
+          try {
+            await window.mermaid.run({ nodes: [el] })
+            el.setAttribute('data-processed', 'true')
+          } catch (e) {
+            el.classList.add('error')
+          }
+        }
+        // 手动渲染后给滚动监听一次机会
+        initScrollSpy()
+      } catch (e) {
+        console.error('mermaid fallback render failed:', e)
+      }
+    } else if (mermaidRetryCount < 30) {
+      mermaidRetryTimer = setTimeout(tryRender, 500)
+    } else {
+      mermaidRetryCount = 0
+    }
+  }
+  mermaidRetryTimer = setTimeout(tryRender, 500)
 }
 
 async function load() {
@@ -186,5 +240,6 @@ onMounted(() => {
 onUnmounted(() => {
   if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
   if (themeObserver) themeObserver.disconnect()
+  clearTimeout(mermaidRetryTimer)
 })
 </script>
