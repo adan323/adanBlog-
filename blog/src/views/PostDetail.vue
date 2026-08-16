@@ -71,7 +71,16 @@
       <div class="flex gap-10">
         <!-- 正文 -->
         <article class="flex-1 min-w-0 pb-16">
-          <div class="md-body" v-html="renderedContent" ref="articleBody" @click="onBodyClick"></div>
+          <div class="post-content" ref="articleBody" @click="onBodyClick">
+            <MdPreview
+              :model-value="post.content"
+              :theme="isDark ? 'dark' : 'light'"
+              :md-heading-id="headingId"
+              no-mermaid
+              no-img-zoom-in
+              @on-html-changed="onHtmlChanged"
+            />
+          </div>
 
           <!-- 上一篇/下一篇 -->
           <nav class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid sm:grid-cols-2 gap-4">
@@ -114,9 +123,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { MdPreview } from 'md-editor-v3'
+import 'md-editor-v3/lib/preview.css'
+import '../utils/editor-config'
 import Lightbox from '../components/Lightbox.vue'
 import { api } from '../api'
-import { renderMarkdown, extractToc, readingTime, formatDate } from '../utils/markdown'
+import { extractToc, readingTime, formatDate, slugify } from '../utils/markdown'
 
 const route = useRoute()
 const post = ref(null)
@@ -128,9 +140,18 @@ const coverState = ref('')
 const lightboxVisible = ref(false)
 const lightboxImages = ref([])
 const lightboxIndex = ref(0)
+const isDark = ref(false)
 
-const renderedContent = computed(() => renderMarkdown(post.value?.content || ''))
 const toc = computed(() => extractToc(post.value?.content || ''))
+
+// MdPreview 标题锚点 id 与 extractToc 保持一致（TOC 跳转依赖）
+function headingId({ text }) {
+  return slugify(text)
+}
+
+function onHtmlChanged() {
+  initScrollSpy()
+}
 
 async function load() {
   loading.value = true
@@ -143,48 +164,6 @@ async function load() {
     error.value = e.message || '文章加载失败'
   } finally {
     loading.value = false
-    // 渲染后为标题加锚点 id
-    setTimeout(() => {
-      if (articleBody.value) {
-        articleBody.value.querySelectorAll('h2, h3').forEach((el) => {
-          const id = el.textContent.toLowerCase()
-            .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '').slice(0, 80)
-          if (id) el.id = id
-        })
-      }
-      renderMermaid()
-    }, 50)
-  }
-}
-
-/** 懒加载 mermaid 并绘制文章内的图表/思维导图（仅当存在 .mermaid 时才加载） */
-let mermaidPromise = null
-async function renderMermaid() {
-  const body = articleBody.value
-  if (!body) return
-  const nodes = Array.from(body.querySelectorAll('.mermaid:not([data-processed])'))
-  if (!nodes.length) return
-  try {
-    if (!mermaidPromise) mermaidPromise = import('mermaid')
-    const { default: mermaid } = await mermaidPromise
-    mermaid.initialize({
-      startOnLoad: false,
-      securityLevel: 'loose',
-      theme: 'default',
-      fontFamily: 'inherit',
-    })
-    for (const el of nodes) {
-      try {
-        await mermaid.run({ nodes: [el] })
-        el.setAttribute('data-processed', 'true')
-      } catch (e) {
-        el.classList.add('error')
-        el.textContent = '（' + (el.dataset.src || 'mermaid') + ' 图渲染失败：' + (e && e.message || e) + '）'
-      }
-    }
-  } catch (e) {
-    console.error('mermaid 加载失败:', e)
   }
 }
 
@@ -199,6 +178,7 @@ function scrollToHeading(id) {
 // 滚动高亮目录
 let scrollHandler = null
 function initScrollSpy() {
+  if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
   scrollHandler = () => {
     const headings = articleBody.value?.querySelectorAll('h2, h3') || []
     let current = ''
@@ -210,6 +190,7 @@ function initScrollSpy() {
     if (current !== activeHeading.value) activeHeading.value = current
   }
   window.addEventListener('scroll', scrollHandler, { passive: true })
+  scrollHandler()
 }
 
 watch(() => route.params.slug, () => {
@@ -240,11 +221,22 @@ function onBodyClick(e) {
   }
 }
 
+// 主题跟随：监听 <html> 的 dark class 变化
+let themeObserver = null
+function initThemeObserver() {
+  isDark.value = document.documentElement.classList.contains('dark')
+  themeObserver = new MutationObserver(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+  })
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+}
+
 onMounted(() => {
-  initScrollSpy()
+  initThemeObserver()
 })
 
 onUnmounted(() => {
   if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
+  if (themeObserver) themeObserver.disconnect()
 })
 </script>

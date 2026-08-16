@@ -161,6 +161,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
 }
+/* SVG（mermaid 大图）模式已移除（mermaid 全站弃用） */
 .lb-footer {
   position: fixed;
   bottom: 24px;

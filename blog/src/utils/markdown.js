@@ -1,71 +1,5 @@
-import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
-import katex from 'katex'
-
-/** 行内公式渲染器 */
-function renderInlineMath(md) {
-  const defaultInline = md.renderer.rules.text || ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options))
-  md.renderer.rules.text = (tokens, idx, options, env, self) => {
-    const text = tokens[idx].content
-    const pattern = /\$([^$]+)\$/g
-    let result = ''
-    let last = 0
-    let match
-    while ((match = pattern.exec(text)) !== null) {
-      result += text.slice(last, match.index)
-      try {
-        result += katex.renderToString(match[1], { throwOnError: false })
-      } catch {
-        result += match[0]
-      }
-      last = match.index + match[0].length
-    }
-    result += text.slice(last)
-    return result !== text || pattern.test(text) ? result : defaultInline(tokens, idx, options, env, self)
-  }
-}
-
-/** 块级公式渲染器（```math）+ mermaid 图表/思维导图（```mermaid / ```mindmap） */
-function renderBlockFence(md) {
-  const defaultFence = md.renderer.rules.fence
-  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
-    const token = tokens[idx]
-    const info = (token.info || '').trim().toLowerCase()
-    // mermaid 图表（含 mindmap 思维导图）：渲染为容器，由前端 mermaid 引擎绘制
-    if (info === 'mermaid' || info === 'mindmap') {
-      return `<div class="mermaid" data-src="${md.utils.escapeHtml(token.info.trim())}">${md.utils.escapeHtml(token.content)}</div>`
-    }
-    if (info === 'math') {
-      try {
-        return `<div class="katex-display">${katex.renderToString(token.content, { displayMode: true, throwOnError: false })}</div>`
-      } catch {
-        return defaultFence(tokens, idx, options, env, self)
-      }
-    }
-    return defaultFence(tokens, idx, options, env, self)
-  }
-}
-
-export const md = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: true,
-  highlight(str, lang) {
-    if (lang && hljs.getLanguage(lang)) {
-      try {
-        return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang, ignoreIllegals: true }).value}</code></pre>`
-      } catch {}
-    }
-    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`
-  },
-})
-
-md.use(renderInlineMath).use(renderBlockFence)
-
-/** 渲染 Markdown 为 HTML */
-export function renderMarkdown(content) {
-  return md.render(content || '')
-}
+// Markdown 渲染已交给 md-editor-v3 的 MdPreview（见 PostDetail.vue），
+// 本文件仅保留文章元数据工具函数。
 
 /** 从 Markdown 提取目录（h2/h3） */
 export function extractToc(content) {
@@ -86,7 +20,7 @@ export function extractToc(content) {
   return toc
 }
 
-function slugify(text) {
+export function slugify(text) {
   return text
     .toLowerCase()
     .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
