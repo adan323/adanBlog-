@@ -135,6 +135,30 @@ function onHtmlChanged() {
  */
 let mermaidRetryTimer = null
 let mermaidRetryCount = 0
+// md-editor-v3 原生渲染 mermaid 的主题配置（抄自其源码 l() 函数），
+// 兜底手动渲染必须用同一套，否则颜色花哨（默认 base 主题 vs 原生白卡片主题）
+function mermaidConfig() {
+  return isDark.value
+    ? { startOnLoad: false, securityLevel: 'loose', theme: 'dark' }
+    : {
+        startOnLoad: false,
+        securityLevel: 'loose',
+        theme: 'base',
+        themeVariables: {
+          background: '#ffffff',
+          primaryColor: '#ffffff',
+          primaryTextColor: '#1f2329',
+          primaryBorderColor: '#b7c0cc',
+          secondaryColor: '#f7f8fa',
+          tertiaryColor: '#f7f8fa',
+          lineColor: '#596273',
+          edgeLabelBackground: '#ffffff',
+          clusterBkg: '#ffffff',
+          clusterBorder: '#b7c0cc',
+        },
+      }
+}
+
 function ensureMermaidRendered() {
   const body = articleBody.value
   if (!body) return
@@ -142,27 +166,34 @@ function ensureMermaidRendered() {
   if (!containers.length) return
   const rendered = body.querySelectorAll('.md-editor-mermaid svg').length
   if (rendered >= containers.length) return
-  // md-editor-v3 因 mermaid.js 加载慢而跳过渲染时，等 window.mermaid 就绪后
-  // 手动渲染缺失的容器（最多重试 30 次 ≈ 15s）
+  // md-editor-v3 因 mermaid.js 加载慢而跳过渲染且不重试（replaceMermaid 只在
+  // 实例就绪时渲染，就绪后不会自动补渲染）。这里等 window.mermaid 就绪后
+  // 手动渲染缺失的容器（最多重试 30 次 ≈ 15s），per-call config 保证主题
+  // 与原生一致；渲染后补 medium-zoom 提供点击放大（原生 enableZoom 的替代）。
   clearTimeout(mermaidRetryTimer)
   const tryRender = async () => {
     mermaidRetryCount++
     if (window.mermaid) {
       mermaidRetryCount = 0
       try {
-        window.mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: 'loose',
-          theme: isDark.value ? 'dark' : 'base',
-        })
         const nodes = Array.from(body.querySelectorAll('.md-editor-mermaid:not([data-processed])'))
         for (const el of nodes) {
           try {
-            await window.mermaid.run({ nodes: [el] })
+            await window.mermaid.run({ nodes: [el], config: mermaidConfig() })
             el.setAttribute('data-processed', 'true')
           } catch (e) {
             el.classList.add('error')
           }
+        }
+        // 补点击放大：md-editor-v3 原生 enableZoom 是自研拖拽缩放（不导出），
+        // 手动渲染绕过了它。这里给 SVG 绑定点击 → 全屏可滚动查看（白底原始像素）
+        const svgs = Array.from(body.querySelectorAll('.md-editor-mermaid svg'))
+        for (const svg of svgs) {
+          svg.style.cursor = 'zoom-in'
+          svg.addEventListener('click', (e) => {
+            e.stopPropagation()
+            openMermaidViewer(svg)
+          })
         }
         // 手动渲染后给滚动监听一次机会
         initScrollSpy()
@@ -233,6 +264,45 @@ function initThemeObserver() {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 }
 
+/**
+ * mermaid 图全屏查看器（兜底渲染专用，替代 md-editor-v3 原生 enableZoom）：
+ * 点击图 → 全屏遮罩 + 原始像素可滚动查看，Esc/点击遮罩关闭。
+ */
+let mermaidViewerEl = null
+function openMermaidViewer(svg) {
+  closeMermaidViewer()
+  const clone = svg.cloneNode(true)
+  clone.removeAttribute('style')
+  clone.setAttribute('style', 'max-width:none; background:#fff;')
+
+  const overlay = document.createElement('div')
+  overlay.className = 'mermaid-viewer'
+  overlay.innerHTML = `
+    <div class="mermaid-viewer-body">
+      <button class="mermaid-viewer-close" title="关闭 (Esc)">✕</button>
+      <div class="mermaid-viewer-scroll"></div>
+    </div>`
+  overlay.querySelector('.mermaid-viewer-scroll').appendChild(clone)
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.classList.contains('mermaid-viewer-close')) closeMermaidViewer()
+  })
+  document.body.appendChild(overlay)
+  mermaidViewerEl = overlay
+  document.addEventListener('keydown', viewerEsc)
+}
+
+function viewerEsc(e) {
+  if (e.key === 'Escape') closeMermaidViewer()
+}
+
+function closeMermaidViewer() {
+  if (mermaidViewerEl) {
+    mermaidViewerEl.remove()
+    mermaidViewerEl = null
+  }
+  document.removeEventListener('keydown', viewerEsc)
+}
+
 onMounted(() => {
   initThemeObserver()
 })
@@ -241,5 +311,6 @@ onUnmounted(() => {
   if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
   if (themeObserver) themeObserver.disconnect()
   clearTimeout(mermaidRetryTimer)
+  closeMermaidViewer()
 })
 </script>
