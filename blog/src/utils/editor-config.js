@@ -1,70 +1,11 @@
 // 博客前台 md-editor-v3 (MdPreview) 扩展资源本地化：默认从 unpkg CDN 动态加载，
 // 改为自托管 public/vendor/ 下的静态资源（构建后位于 /vendor/）。
 // 启用完整扩展：mermaid 图、katex 公式、echarts 图表、highlight 高亮。
-// 支持 echarts 动态数据占位符：文章里写 {{traffic.xxx}}，渲染时替换为实时统计。
 import { config } from 'md-editor-v3'
 
 const V = '/vendor/'
 
-// ===== echarts 动态数据（占位符替换） =====
-// 约定：文章 echarts 代码块里可用 {{traffic.days}} / {{traffic.views}} /
-// {{traffic.today}} / {{traffic.week}} / {{traffic.total}}。
-// PostDetail.vue 检测到占位符后会先 fetch /api/public/stats/traffic 写入
-// window.__trafficData 再渲染（同步替换，避免异步时序问题）。
-const TRAFFIC_KEYS = ['days', 'views', 'today', 'week', 'total']
-
-function resolveTrafficPlaceholder(value) {
-  if (typeof value !== 'string') return value
-  const m = value.match(/^\{\{traffic\.([a-zA-Z]+)\}\}$/)
-  if (!m) return value
-  const key = m[1]
-  if (!TRAFFIC_KEYS.includes(key)) return value
-  const data = window.__trafficData
-  if (data && data[key] !== undefined) return data[key]
-  // 数据未就绪：返回空占位（正常不会发生，PostDetail 会先预加载）
-  if (key === 'days' || key === 'views') return []
-  return 0
-}
-
-function resolveDynamicData(node) {
-  if (Array.isArray(node)) {
-    return node.map((n) => resolveDynamicData(n))
-  }
-  if (node && typeof node === 'object') {
-    const out = {}
-    for (const k of Object.keys(node)) {
-      out[k] = resolveDynamicData(node[k])
-    }
-    return out
-  }
-  return resolveTrafficPlaceholder(node)
-}
-
-/**
- * echarts 渲染前统一处理（任何文章都生效）：
- * 1. {{traffic.*}} 占位符替换为实时数据
- * 2. 标题布局兜底：带 title 的图表自动留出标题空间（grid.top >= 90），
- *    避免"标题与图表区/坐标轴名称重合"（2026-08 用户报障的通用修复，
- *    不用每篇文章手动调参）
- */
-function normalizeEchartsOption(option) {
-  const out = resolveDynamicData(option)
-  if (out && typeof out === 'object' && out.title && out.grid) {
-    // 标题存在时，确保图表区顶部给标题留足空间（echarts 默认 top 从容器顶算）
-    if (typeof out.grid.top === 'undefined' || Number(out.grid.top) < 90) {
-      out.grid.top = 90
-    }
-    // 标题固定贴顶，避免默认定位导致与图表区交错
-    if (typeof out.title.top === 'undefined') {
-      out.title.top = 0
-    }
-  }
-  return out
-}
-
 config({
-  // echarts 渲染前钩子：占位符替换 + 标题布局兜底（所有文章统一生效）
-  echartsConfig: (option) => normalizeEchartsOption(option),
   editorExtensions: {
     highlight: {
       js: `${V}highlight.min.js`,
@@ -87,34 +28,3 @@ config({
     },
   },
 })
-
-/** 预加载流量统计（含动态图表的文章在渲染前调用）：fetch 后写入 window.__trafficData */
-let trafficPromise = null
-export function ensureTrafficData(days = 14) {
-  if (window.__trafficData) return Promise.resolve()
-  if (trafficPromise) return trafficPromise
-  trafficPromise = fetch(`/api/public/stats/traffic?days=${days}`)
-    .then((r) => {
-      if (!r.ok) throw new Error(`traffic ${r.status}`)
-      return r.json()
-    })
-    .then((data) => {
-      window.__trafficData = {
-        days: data.days || [],
-        views: data.views || [],
-        today: data.overview?.today ?? 0,
-        week: data.overview?.week ?? 0,
-        total: data.overview?.total ?? 0,
-      }
-    })
-    .catch(() => {
-      // 失败给空数据兜底，不阻塞文章渲染
-      window.__trafficData = { days: [], views: [], today: 0, week: 0, total: 0 }
-    })
-  return trafficPromise
-}
-
-/** 文章内容是否含 echarts 动态数据占位符 */
-export function hasTrafficPlaceholder(content) {
-  return /\{\{traffic\./.test(content || '')
-}

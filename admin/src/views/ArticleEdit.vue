@@ -146,22 +146,6 @@ async function onUploadImg(files, callback) {
 }
 
 onMounted(async () => {
-  // 预取流量统计：编辑时 echarts 动态占位符 {{traffic.*}} 能实时预览
-  try {
-    const r = await fetch('/api/public/stats/traffic?days=14')
-    if (r.ok) {
-      const data = await r.json()
-      window.__trafficData = {
-        days: data.days || [],
-        views: data.views || [],
-        today: data.overview?.today ?? 0,
-        week: data.overview?.week ?? 0,
-        total: data.overview?.total ?? 0,
-      }
-    }
-  } catch (e) {
-    /* 忽略：占位符显示空数据兜底 */
-  }
   if (isEdit.value) {
     try {
       const data = await adminApi.getArticle(route.params.id)
