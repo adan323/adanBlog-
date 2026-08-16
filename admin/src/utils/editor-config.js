@@ -1,6 +1,6 @@
 // md-editor-v3 扩展资源本地化：默认从 unpkg CDN 动态加载（国内访问不稳），
 // 全部改为自托管 public/vendor/ 下的静态资源（构建后位于 /admin/vendor/）。
-// 注意：mermaid 已弃用（no-mermaid 属性），此处不再配置 mermaid。
+// 启用完整扩展：mermaid 图、katex 公式、echarts 图表、highlight 高亮、prettier 格式化、图片裁剪、全屏。
 import { config } from 'md-editor-v3'
 
 const V = '/admin/vendor/'
@@ -26,6 +26,11 @@ config({
     },
     screenfull: { js: `${V}screenfull.js` },
     cropper: { css: `${V}cropper.min.css`, js: `${V}cropper.min.js` },
+    mermaid: { js: `${V}mermaid.min.js`, enableZoom: false },
     katex: { css: `${V}katex.min.css`, js: `${V}katex.min.js` },
+    echarts: {
+      js: `${V}echarts.min.js`,
+      parseOption: (code) => new Function(`return ${code}`)(),
+    },
   },
 })

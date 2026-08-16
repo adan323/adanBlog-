@@ -17,7 +17,9 @@
     "@highlightjs/cdn-assets": "^11.11.1",
     "@vitejs/plugin-vue": "^5.0.0",
     "autoprefixer": "^10.4.19",
+    "echarts": "^6.0.0",
     "katex": "^0.16.9",
+    "mermaid": "^11.12.3",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "vite": "^5.2.0"

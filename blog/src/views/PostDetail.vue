@@ -76,7 +76,6 @@
               :model-value="post.content"
               :theme="isDark ? 'dark' : 'light'"
               :md-heading-id="headingId"
-              no-mermaid
               no-img-zoom-in
               @on-html-changed="onHtmlChanged"
             />
@@ -207,9 +206,23 @@ function openCover() {
   lightboxVisible.value = true
 }
 
-/** 正文图片点击：收集文章内所有图片，从点击的那张开始查看 */
+/** 正文图片/图表点击：mermaid 图（SVG）序列化为 data URL 全屏查看；普通图片收集后翻页查看 */
 function onBodyClick(e) {
   const target = e.target
+  // mermaid 图（SVG）点击：序列化为 data URL 全屏查看（保持原始像素，可滚动）
+  const mermaidBox = target.closest?.('.md-editor-mermaid')
+  if (mermaidBox) {
+    const svg = mermaidBox.querySelector('svg')
+    if (svg) {
+      const clone = svg.cloneNode(true)
+      clone.setAttribute('style', 'background-color: #ffffff;')
+      const str = new XMLSerializer().serializeToString(clone)
+      lightboxImages.value = ['data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str)]
+      lightboxIndex.value = 0
+      lightboxVisible.value = true
+    }
+    return
+  }
   if (target && target.tagName === 'IMG') {
     const imgs = Array.from(articleBody.value?.querySelectorAll('img') || [])
     const urls = imgs.map((i) => i.currentSrc || i.src)

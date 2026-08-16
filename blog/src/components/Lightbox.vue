@@ -13,8 +13,8 @@
         </button>
 
         <!-- 图片（完整显示，保持原始比例） -->
-        <div class="lb-viewport">
-          <img :src="images[current]" class="lb-image" :alt="'图片 ' + (current + 1)"
+        <div class="lb-viewport" :class="{ 'lb-viewport-svg': isSvg }">
+          <img :src="images[current]" class="lb-image" :class="{ 'lb-image-svg': isSvg }" :alt="'图片 ' + (current + 1)"
                draggable="false" loading="lazy" @dragstart.prevent>
         </div>
 
@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -48,6 +48,9 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'change'])
 
 const current = ref(0)
+
+/** 当前图片是否为 SVG data URL（mermaid 大图）：按原始像素显示 + 可滚动查看 */
+const isSvg = computed(() => String(props.images[current.value] || '').startsWith('data:image/svg'))
 
 watch(() => props.visible, (v) => {
   if (v) current.value = props.initialIndex
@@ -161,7 +164,23 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
 }
-/* SVG（mermaid 大图）模式已移除（mermaid 全站弃用） */
+/* SVG（mermaid 大图）模式：原始像素 + 视口滚动，可拖动查看细节 */
+.lb-viewport-svg {
+  overflow: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  cursor: grab;
+  padding: 24px;
+}
+.lb-viewport-svg:active { cursor: grabbing; }
+.lb-image-svg {
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.45);
+}
 .lb-footer {
   position: fixed;
   bottom: 24px;

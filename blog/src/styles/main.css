@@ -83,3 +83,25 @@
   animation: shimmer 1.4s infinite;
   @apply dark:bg-slate-800;
 }
+
+/* ===== md-editor-v3 预览适配（博客前台） ===== */
+/* 正文容器让预览铺满宽度 */
+.post-content .md-editor-preview { padding: 0; }
+/* mermaid 图：白卡片容器，深色模式白底深字依然可读；SVG 保持原始像素、容器横向滚动 */
+.post-content .md-editor-mermaid {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 20px 0;
+  overflow-x: auto;
+}
+.post-content .md-editor-mermaid svg {
+  max-width: none;
+  min-width: min(560px, 100%);
+  height: auto;
+}
+.post-content .md-editor-mermaid.error {
+  color: #dc2626;
+  font-size: 13px;
+}

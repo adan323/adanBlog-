@@ -50,14 +50,14 @@
         </div>
       </div>
 
-      <!-- md-editor-v3 编辑器：支持 Katex 公式、代码高亮；mermaid 已弃用 -->
+      <!-- md-editor-v3 编辑器：全功能（mermaid 图、katex 公式、echarts 图表、代码高亮、图片裁剪上传、格式化、目录、全屏） -->
       <MdEditor
         v-model="form.content"
         style="height: 640px"
         class="md-editor"
-        no-mermaid
-        :toolbars="toolbars"
+        :toolbars-exclude="['github']"
         :on-upload-img="onUploadImg"
+        @on-save="() => save('draft')"
       />
     </el-card>
   </div>
@@ -87,15 +87,6 @@ const form = reactive({
   status: 'draft',
   tags: [],
 })
-
-// 精简工具栏：'-' 分隔工具，'=' 分左右区；含公式、图片、代码块等（mermaid 已弃用）
-const toolbars = [
-  'bold', 'italic', 'strikeThrough', '-',
-  'title', 'quote', 'unorderedList', 'orderedList', 'task', '-',
-  'link', 'image', 'table', 'code', 'codeRow', 'katex', '-',
-  'revoke', 'next', '=',
-  'preview', 'fullscreen', 'htmlPreview', 'catalog',
-]
 
 function parseTags() {
   form.tags = tagInput.value
