@@ -37,6 +37,8 @@ onMounted(async () => {
       theme: '#3b82f6',
     })
     // 注意：fixed 模式源码自动 mini（窄条），保持默认收起，不要 setMode('normal')
+    // 默认隐藏歌词（lrc 仍加载，点击歌词区域可切换显示）
+    player.lrc.hide()
   } catch (e) {
     console.error('music player init failed:', e)
   }
