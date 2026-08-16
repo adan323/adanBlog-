@@ -9,6 +9,19 @@ const V = '/admin/vendor/'
 // ===== echarts 动态数据（占位符替换，与博客前台 editor-config.js 一致） =====
 const TRAFFIC_KEYS = ['days', 'views', 'today', 'week', 'total']
 
+/** 字符串级替换：{{traffic.days}} → ["2026-08-10",...]，在 parseOption 解析前调用，
+ * 否则 {{ }} 是非法 JS 语法，new Function 直接崩溃（后台编辑器预览依赖这个） */
+function replaceTrafficPlaceholdersInCode(code) {
+  const t = window.__trafficData
+  if (!t) return code
+  return code
+    .replace(/\{\{traffic\.days\}\}/g, JSON.stringify(t.days))
+    .replace(/\{\{traffic\.views\}\}/g, JSON.stringify(t.views))
+    .replace(/\{\{traffic\.today\}\}/g, String(t.today))
+    .replace(/\{\{traffic\.week\}\}/g, String(t.week))
+    .replace(/\{\{traffic\.total\}\}/g, String(t.total))
+}
+
 function resolveTrafficPlaceholder(value) {
   if (typeof value !== 'string') return value
   const m = value.match(/^\{\{traffic\.([a-zA-Z]+)\}\}$/)
@@ -37,6 +50,29 @@ function resolveDynamicData(node) {
 
 config({
   echartsConfig: (option) => resolveDynamicData(option),
+  // 预览 HTML 渲染前替换正文里的 {{traffic.*}} 文本占位符（说明文字等），
+  // 与 echarts 代码块里的替换（parseOption 层）互补
+  markdownItPlugins: (plugins) => [
+    ...plugins,
+    {
+      type: 'replace-traffic-text',
+      plugin: (md) => {
+        md.core.ruler.push('replace-traffic-text', (state) => {
+          for (const token of state.tokens) {
+            if (token.type === 'inline' && token.content) {
+              token.content = replaceTrafficPlaceholdersInCode(token.content)
+              if (token.children) {
+                for (const child of token.children) {
+                  if (child.content) child.content = replaceTrafficPlaceholdersInCode(child.content)
+                }
+              }
+            }
+          }
+        })
+      },
+      options: {},
+    },
+  ],
   editorExtensions: {
     highlight: {
       js: `${V}highlight.min.js`,
@@ -61,7 +97,7 @@ config({
     katex: { css: `${V}katex.min.css`, js: `${V}katex.min.js` },
     echarts: {
       js: `${V}echarts.min.js`,
-      parseOption: (code) => new Function(`return ${code}`)(),
+      parseOption: (code) => new Function(`return ${replaceTrafficPlaceholdersInCode(code)}`)(),
     },
   },
 })

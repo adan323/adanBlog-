@@ -13,6 +13,19 @@ const V = '/vendor/'
 // window.__trafficData 再渲染（同步替换，避免异步时序问题）。
 const TRAFFIC_KEYS = ['days', 'views', 'today', 'week', 'total']
 
+/** 字符串级替换：{{traffic.days}} → ["2026-08-10",...]，在 parseOption 解析前调用，
+ * 否则 {{ }} 是非法 JS 语法，new Function 直接崩溃 */
+function replaceTrafficPlaceholdersInCode(code) {
+  const t = window.__trafficData
+  if (!t) return code
+  return code
+    .replace(/\{\{traffic\.days\}\}/g, JSON.stringify(t.days))
+    .replace(/\{\{traffic\.views\}\}/g, JSON.stringify(t.views))
+    .replace(/\{\{traffic\.today\}\}/g, String(t.today))
+    .replace(/\{\{traffic\.week\}\}/g, String(t.week))
+    .replace(/\{\{traffic\.total\}\}/g, String(t.total))
+}
+
 function resolveTrafficPlaceholder(value) {
   if (typeof value !== 'string') return value
   const m = value.match(/^\{\{traffic\.([a-zA-Z]+)\}\}$/)
@@ -61,7 +74,7 @@ config({
     katex: { css: `${V}katex.min.css`, js: `${V}katex.min.js` },
     echarts: {
       js: `${V}echarts.min.js`,
-      parseOption: (code) => new Function(`return ${code}`)(),
+      parseOption: (code) => new Function(`return ${replaceTrafficPlaceholdersInCode(code)}`)(),
     },
   },
 })
