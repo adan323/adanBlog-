@@ -26,7 +26,7 @@ onMounted(async () => {
     }))
     player = new APlayer({
       container: playerRef.value,
-      // 吸底模式：整条播放器固定在页面底部
+      // 吸底模式：固定在页面底部，默认收起为窄条，点击封面/箭头展开完整条
       fixed: true,
       audio,
       lrcType: 3,            // 3 = lrc 文件链接
@@ -36,8 +36,7 @@ onMounted(async () => {
       volume: 0.7,
       theme: '#3b82f6',
     })
-    // fixed 模式默认是窄条（源码 mini: fixed||narrow），初始化后展开为完整条
-    player.setMode('normal')
+    // 注意：fixed 模式源码自动 mini（窄条），保持默认收起，不要 setMode('normal')
   } catch (e) {
     console.error('music player init failed:', e)
   }
