@@ -50,11 +50,12 @@
         </div>
       </div>
 
-      <!-- md-editor-v3 编辑器：支持 Mermaid（思维导图/流程图等）、Katex 公式、代码高亮 -->
+      <!-- md-editor-v3 编辑器：支持 Katex 公式、代码高亮；mermaid 已弃用 -->
       <MdEditor
         v-model="form.content"
         style="height: 640px"
         class="md-editor"
+        no-mermaid
         :toolbars="toolbars"
         :on-upload-img="onUploadImg"
       />
@@ -87,11 +88,11 @@ const form = reactive({
   tags: [],
 })
 
-// 精简工具栏：'-' 分隔工具，'=' 分左右区；含 Mermaid 图、公式、图片、代码块等
+// 精简工具栏：'-' 分隔工具，'=' 分左右区；含公式、图片、代码块等（mermaid 已弃用）
 const toolbars = [
   'bold', 'italic', 'strikeThrough', '-',
   'title', 'quote', 'unorderedList', 'orderedList', 'task', '-',
-  'link', 'image', 'table', 'code', 'codeRow', 'mermaid', 'katex', '-',
+  'link', 'image', 'table', 'code', 'codeRow', 'katex', '-',
   'revoke', 'next', '=',
   'preview', 'fullscreen', 'htmlPreview', 'catalog',
 ]
