@@ -1,6 +1,5 @@
 package com.adan.blog.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -13,13 +12,9 @@ import java.time.Duration;
  * - index.html / admin/index.html：不缓存（SPA 更新后用户能立即拿到新版）
  * - 带 hash 的 assets/*：长缓存（7 天），文件名变则重新拉取
  * - uploads/*：短缓存（1 小时）
- * - music/*：音乐文件（mp3/flac/m4a/lrc），长缓存（音频不变不重拉）
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-
-    @Value("${adan.blog.music-dir:/root/Music}")
-    private String musicDir;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -34,9 +29,5 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("classpath:/static/uploads/", "file:/var/lib/adan-blog/uploads/")
                 .setCacheControl(CacheControl.maxAge(Duration.ofHours(1)));
-
-        registry.addResourceHandler("/music/**")
-                .addResourceLocations("file:" + (musicDir.endsWith("/") ? musicDir : musicDir + "/"))
-                .setCacheControl(CacheControl.maxAge(Duration.ofDays(7)));
     }
 }

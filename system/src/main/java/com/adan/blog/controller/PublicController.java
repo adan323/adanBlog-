@@ -113,10 +113,39 @@ public class PublicController {
         return ResponseEntity.ok(result);
     }
 
-    /** 音乐列表（aplayer 播放器数据源）：扫描音乐目录，
-     * 返回 [{title, artist, url, lrc}]，音频经 /music/** 静态映射提供 */
+    /** 音乐列表（aplayer 播放器数据源）：Emby 音乐库，返回 [{id,title,artist,album,url,lrc,cover}] */
     @GetMapping("/public/music")
     public ResponseEntity<List<Map<String, Object>>> music() {
         return ResponseEntity.ok(musicService.list());
+    }
+
+    /** 音频流代理：转发 Emby 转码流（mp3），隐藏 api_key */
+    @GetMapping(value = "/public/music/audio/{id}", produces = "audio/mpeg")
+    public ResponseEntity<byte[]> musicAudio(@PathVariable String id) {
+        byte[] body = musicService.audio(id);
+        if (body.length == 0) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, max-age=3600")
+                .body(body);
+    }
+
+    /** 封面代理：转发 Emby 图片 */
+    @GetMapping(value = "/public/music/cover/{id}", produces = {"image/jpeg", "image/png"})
+    public ResponseEntity<byte[]> musicCover(@PathVariable String id) {
+        byte[] body = musicService.cover(id);
+        if (body.length == 0) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, max-age=86400")
+                .body(body);
+    }
+
+    /** 歌词：读同名 .lrc 文件 */
+    @GetMapping(value = "/public/music/lrc/{id}", produces = "text/plain;charset=UTF-8")
+    public ResponseEntity<byte[]> musicLrc(@PathVariable String id) {
+        byte[] body = musicService.lrc(id);
+        if (body.length == 0) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, max-age=86400")
+                .body(body);
     }
 }
