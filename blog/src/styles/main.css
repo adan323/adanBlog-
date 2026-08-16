@@ -121,3 +121,8 @@
   box-shadow: 0 10px 30px rgba(2, 6, 23, .12);
   cursor: zoom-in;
 }
+
+/* 文章加载期间隐藏页脚：骨架屏阶段页脚不渲染，避免被"顶上来"（超高屏也适用） */
+body.post-loading footer {
+  display: none;
+}

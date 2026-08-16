@@ -257,6 +257,12 @@ watch(() => route.params.slug, () => {
   load()
 }, { immediate: true })
 
+// 加载期间给 body 加 .post-loading：全局 CSS 隐藏页脚（见 main.css），
+// 无论屏幕多高页脚都不会在骨架屏阶段"顶出来"；内容就绪后移除、页脚正常出现
+watch([loading, mdReady], () => {
+  document.body.classList.toggle('post-loading', loading.value || !mdReady.value)
+}, { immediate: true })
+
 // 主题跟随：监听 <html> 的 dark class 变化
 let themeObserver = null
 function initThemeObserver() {
@@ -279,5 +285,6 @@ onMounted(() => {
 onUnmounted(() => {
   if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
   if (themeObserver) themeObserver.disconnect()
+  document.body.classList.remove('post-loading')
 })
 </script>
