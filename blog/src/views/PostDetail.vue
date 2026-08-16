@@ -135,42 +135,6 @@
         </aside>
       </div>
     </template>
-
-    <!-- 移动端目录：悬浮按钮 + 抽屉面板（PC 端用右侧 aside，移动端这里补入口） -->
-    <div v-if="toc.length > 0" class="lg:hidden">
-      <button
-        class="fixed bottom-24 right-4 z-40 w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300"
-        @click="mobileTocOpen = !mobileTocOpen"
-        :title="mobileTocOpen ? '关闭目录' : '打开目录'"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-      </button>
-
-      <transition name="toc-pop">
-        <div v-if="mobileTocOpen" class="fixed inset-0 z-40 lg:hidden">
-          <!-- 遮罩 -->
-          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="mobileTocOpen = false"></div>
-          <!-- 面板：底部弹出 -->
-          <div class="absolute bottom-0 inset-x-0 bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl max-h-[60vh] overflow-y-auto p-5 pb-8">
-            <div class="flex items-center justify-between mb-3">
-              <div class="text-[13px] font-semibold text-slate-400 tracking-widest uppercase">目录</div>
-              <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none" @click="mobileTocOpen = false">×</button>
-            </div>
-            <nav class="space-y-1.5">
-              <a v-for="item in toc" :key="item.id" :href="'#' + item.id"
-                 @click.prevent="scrollToHeading(item.id); mobileTocOpen = false"
-                 class="block text-[14px] leading-snug py-1.5 rounded-lg px-2 transition-colors"
-                 :class="activeHeading === item.id
-                   ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-medium'
-                   : item.level === 3 ? 'pl-6 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                     : 'pl-3 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">
-                {{ item.text }}
-              </a>
-            </nav>
-          </div>
-        </div>
-      </transition>
-    </div>
   </div>
 </template>
 
@@ -195,8 +159,6 @@ const isDark = ref(false)
 // 确保 MdPreview 挂载时 mermaid 实例已就绪 → md-editor-v3 走原生渲染路径
 // （enableZoom 缩放、主题全部正常），从根上消除"图表时灵时不灵"竞态。
 const mdReady = ref(false)
-// 移动端目录抽屉开关
-const mobileTocOpen = ref(false)
 
 const toc = computed(() => extractToc(post.value?.content || ''))
 
