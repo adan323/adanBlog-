@@ -105,6 +105,7 @@ import { useRoute } from 'vue-router'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import '../utils/editor-config'
+import { ensureTrafficData, hasTrafficPlaceholder } from '../utils/editor-config'
 import { api } from '../api'
 import { extractToc, readingTime, formatDate, slugify } from '../utils/markdown'
 
@@ -122,9 +123,19 @@ const mdReady = ref(false)
 
 const toc = computed(() => extractToc(post.value?.content || ''))
 
-/** 正文 markdown：封面图以 HTML 拼入顶部（保留居中/限高样式），由 MdPreview 统一渲染和点击查看 */
+/** 正文 markdown：封面图以 HTML 拼入顶部 + 替换动态数据占位符 {{traffic.*}} */
 const previewContent = computed(() => {
-  const content = post.value?.content || ''
+  let content = post.value?.content || ''
+  // 动态数据占位符替换（数据由 load() 预加载到 window.__trafficData）
+  const t = window.__trafficData
+  if (t) {
+    content = content
+      .replace(/\{\{traffic\.days\}\}/g, JSON.stringify(t.days))
+      .replace(/\{\{traffic\.views\}\}/g, JSON.stringify(t.views))
+      .replace(/\{\{traffic\.today\}\}/g, String(t.today))
+      .replace(/\{\{traffic\.week\}\}/g, String(t.week))
+      .replace(/\{\{traffic\.total\}\}/g, String(t.total))
+  }
   const cover = post.value?.coverUrl
   if (!cover) return content
   const alt = (post.value?.title || '封面').replace(/"/g, '&quot;')
@@ -167,9 +178,12 @@ async function load() {
   mdReady.value = false
   try {
     post.value = await api.getArticle(route.params.slug)
-    if (hasMermaid(post.value?.content)) {
-      await preloadMermaid()
-    }
+    const content = post.value?.content || ''
+    // 并行预加载：mermaid 就绪 + 动态图表数据就绪，都完成后再渲染 MdPreview
+    const tasks = []
+    if (hasMermaid(content)) tasks.push(preloadMermaid())
+    if (hasTrafficPlaceholder(content)) tasks.push(ensureTrafficData(14))
+    if (tasks.length) await Promise.all(tasks)
   } catch (e) {
     error.value = e.message || '文章加载失败'
   } finally {

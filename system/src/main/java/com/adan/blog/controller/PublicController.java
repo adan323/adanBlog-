@@ -93,4 +93,21 @@ public class PublicController {
     public ResponseEntity<Map<String, Object>> stats() {
         return ResponseEntity.ok(articleService.stats());
     }
+
+    /**
+     * 公开访问趋势（供文章内动态 ECharts 图表用）：
+     * 只返回聚合数据（每日 PV + 总览），不含 IP/UA 等明细，可安全公开。
+     * 用法：文章 echarts 代码块里写 {{traffic.days}} / {{traffic.views}}
+     * 占位符，前端 echartsConfig 钩子拉取本接口后替换。
+     */
+    @GetMapping("/public/stats/traffic")
+    public ResponseEntity<Map<String, Object>> publicTraffic(
+            @RequestParam(defaultValue = "14") int days) {
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        List<Map<String, Object>> daily = visitLogService.daily(days);
+        result.put("days", daily.stream().map(d -> d.get("date")).toList());
+        result.put("views", daily.stream().map(d -> d.get("pv")).toList());
+        result.put("overview", visitLogService.overview());
+        return ResponseEntity.ok(result);
+    }
 }
