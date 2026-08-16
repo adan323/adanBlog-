@@ -135,3 +135,21 @@ body.post-loading footer {
 .animate-spin-slow {
   animation: spin-slow 4s linear infinite;
 }
+
+/* 移动端目录抽屉动画 */
+.toc-pop-enter-active,
+.toc-pop-leave-active {
+  transition: opacity 0.25s ease;
+}
+.toc-pop-enter-active .absolute.bottom-0,
+.toc-pop-leave-active .absolute.bottom-0 {
+  transition: transform 0.25s ease;
+}
+.toc-pop-enter-from,
+.toc-pop-leave-to {
+  opacity: 0;
+}
+.toc-pop-enter-from .absolute.bottom-0,
+.toc-pop-leave-to .absolute.bottom-0 {
+  transform: translateY(100%);
+}
