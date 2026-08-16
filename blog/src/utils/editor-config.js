@@ -20,7 +20,7 @@ config({
         stackoverflow: { light: `${V}atom-one-light.min.css`, dark: `${V}atom-one-dark.min.css` },
       },
     },
-    mermaid: { js: `${V}mermaid.min.js`, enableZoom: false },
+    mermaid: { js: `${V}mermaid.min.js`, enableZoom: true },
     katex: { css: `${V}katex.min.css`, js: `${V}katex.min.js` },
     echarts: {
       js: `${V}echarts.min.js`,

@@ -71,12 +71,11 @@
       <div class="flex gap-10">
         <!-- 正文 -->
         <article class="flex-1 min-w-0 pb-16">
-          <div class="post-content" ref="articleBody" @click="onBodyClick">
+          <div class="post-content" ref="articleBody">
             <MdPreview
               :model-value="post.content"
               :theme="isDark ? 'dark' : 'light'"
               :md-heading-id="headingId"
-              no-img-zoom-in
               @on-html-changed="onHtmlChanged"
             />
           </div>
@@ -114,9 +113,6 @@
       </div>
     </template>
   </div>
-
-  <!-- 图片查看器 -->
-  <Lightbox v-model:visible="lightboxVisible" :images="lightboxImages" :initial-index="lightboxIndex" />
 </template>
 
 <script setup>
@@ -125,7 +121,6 @@ import { useRoute } from 'vue-router'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import '../utils/editor-config'
-import Lightbox from '../components/Lightbox.vue'
 import { api } from '../api'
 import { extractToc, readingTime, formatDate, slugify } from '../utils/markdown'
 
@@ -136,9 +131,6 @@ const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
 const coverState = ref('')
-const lightboxVisible = ref(false)
-const lightboxImages = ref([])
-const lightboxIndex = ref(0)
 const isDark = ref(false)
 
 const toc = computed(() => extractToc(post.value?.content || ''))
@@ -198,40 +190,10 @@ watch(() => route.params.slug, () => {
   load()
 }, { immediate: true })
 
-/** 打开封面大图查看 */
+/** 打开封面大图（新标签页） */
 function openCover() {
   if (coverState.value !== 'ok' || !post.value?.coverUrl) return
-  lightboxImages.value = [post.value.coverUrl]
-  lightboxIndex.value = 0
-  lightboxVisible.value = true
-}
-
-/** 正文图片/图表点击：mermaid 图（SVG）序列化为 data URL 全屏查看；普通图片收集后翻页查看 */
-function onBodyClick(e) {
-  const target = e.target
-  // mermaid 图（SVG）点击：序列化为 data URL 全屏查看（保持原始像素，可滚动）
-  const mermaidBox = target.closest?.('.md-editor-mermaid')
-  if (mermaidBox) {
-    const svg = mermaidBox.querySelector('svg')
-    if (svg) {
-      const clone = svg.cloneNode(true)
-      clone.setAttribute('style', 'background-color: #ffffff;')
-      const str = new XMLSerializer().serializeToString(clone)
-      lightboxImages.value = ['data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str)]
-      lightboxIndex.value = 0
-      lightboxVisible.value = true
-    }
-    return
-  }
-  if (target && target.tagName === 'IMG') {
-    const imgs = Array.from(articleBody.value?.querySelectorAll('img') || [])
-    const urls = imgs.map((i) => i.currentSrc || i.src)
-    if (urls.length === 0) return
-    const idx = Math.max(0, urls.indexOf(target.currentSrc || target.src))
-    lightboxImages.value = urls
-    lightboxIndex.value = idx
-    lightboxVisible.value = true
-  }
+  window.open(post.value.coverUrl, '_blank', 'noopener')
 }
 
 // 主题跟随：监听 <html> 的 dark class 变化
