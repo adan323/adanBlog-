@@ -1,10 +1,25 @@
 <template>
   <div class="container-blog fade-in-page">
-    <div v-if="loading" class="py-16">
+    <!-- 文章加载骨架屏：覆盖整个正文区域（含标题/图表/段落/上一篇下一篇占位），
+         高度模拟真实文章，避免加载期间页脚被"顶上来"造成跳动 -->
+    <div v-if="loading" class="pt-10 animate-pulse">
       <div class="skeleton h-8 w-2/3 mb-6 rounded"></div>
+      <div class="skeleton h-72 w-full rounded-2xl"></div>
+      <div class="skeleton h-4 w-full mt-6 mb-3 rounded"></div>
       <div class="skeleton h-4 w-full mb-3 rounded"></div>
+      <div class="skeleton h-4 w-3/4 mb-8 rounded"></div>
+      <div class="skeleton h-5 w-1/4 mb-4 rounded"></div>
       <div class="skeleton h-4 w-full mb-3 rounded"></div>
-      <div class="skeleton h-4 w-3/4 rounded"></div>
+      <div class="skeleton h-4 w-2/3 mb-8 rounded"></div>
+      <div class="skeleton h-64 w-full rounded-2xl"></div>
+      <div class="skeleton h-4 w-full mt-6 mb-3 rounded"></div>
+      <div class="skeleton h-4 w-5/6 mb-3 rounded"></div>
+      <div class="skeleton h-4 w-3/4 mb-3 rounded"></div>
+      <div class="skeleton h-4 w-2/3 mb-8 rounded"></div>
+      <div class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid sm:grid-cols-2 gap-4">
+        <div class="skeleton h-20 rounded-xl"></div>
+        <div class="skeleton h-20 rounded-xl"></div>
+      </div>
     </div>
 
     <div v-else-if="error" class="py-24 text-center">
@@ -43,38 +58,62 @@
       <div class="flex gap-10">
         <!-- 正文（封面图已拼入 markdown 顶部，由 MdPreview 统一渲染/查看） -->
         <article class="flex-1 min-w-0 pb-16">
-          <!-- mermaid 预加载骨架屏：含图文章先显示骨架，mermaid 就绪后再渲染 MdPreview，
-               保证 md-editor-v3 走原生渲染路径（enableZoom 缩放、主题全部正常） -->
-          <div v-if="!mdReady" class="py-8 animate-pulse">
-            <div class="skeleton h-6 w-1/3 mb-4 rounded"></div>
+          <!-- mermaid 预加载骨架屏：覆盖整个正文区域（含图表/段落/上一篇下一篇占位），
+               高度模拟真实文章，避免加载期间页脚被"顶上来"造成跳动 -->
+          <div v-if="!mdReady" class="animate-pulse">
+            <!-- 封面/标题占位 -->
+            <div class="skeleton h-8 w-2/3 mb-6 rounded"></div>
+            <!-- 首图/封面 -->
+            <div class="skeleton h-72 w-full rounded-2xl"></div>
+            <!-- 段落 -->
+            <div class="skeleton h-4 w-full mt-6 mb-3 rounded"></div>
+            <div class="skeleton h-4 w-full mb-3 rounded"></div>
+            <div class="skeleton h-4 w-3/4 mb-8 rounded"></div>
+            <!-- 二级标题 -->
+            <div class="skeleton h-5 w-1/4 mb-4 rounded"></div>
+            <!-- 段落 -->
+            <div class="skeleton h-4 w-full mb-3 rounded"></div>
+            <div class="skeleton h-4 w-2/3 mb-8 rounded"></div>
+            <!-- 图表/大块 -->
             <div class="skeleton h-64 w-full rounded-2xl"></div>
-            <div class="skeleton h-4 w-full mt-4 rounded"></div>
-            <div class="skeleton h-4 w-3/4 mt-3 rounded"></div>
-            <p class="text-[13px] text-slate-400 mt-5 flex items-center gap-2">
+            <!-- 段落 -->
+            <div class="skeleton h-4 w-full mt-6 mb-3 rounded"></div>
+            <div class="skeleton h-4 w-5/6 mb-3 rounded"></div>
+            <div class="skeleton h-4 w-3/4 mb-3 rounded"></div>
+            <div class="skeleton h-4 w-2/3 mb-8 rounded"></div>
+            <!-- 加载提示 -->
+            <p class="text-[13px] text-slate-400 mt-2 flex items-center gap-2">
               <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 3a9 9 0 109 9h-3a6 6 0 11-6-6V3z"/></svg>
               正在加载图表引擎…
             </p>
+            <!-- 上一篇/下一篇占位（保持页脚位置稳定） -->
+            <div class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid sm:grid-cols-2 gap-4">
+              <div class="skeleton h-20 rounded-xl"></div>
+              <div class="skeleton h-20 rounded-xl"></div>
+            </div>
           </div>
-          <div v-else class="post-content" ref="articleBody">
-            <MdPreview
-              :model-value="previewContent"
-              :theme="isDark ? 'dark' : 'light'"
-              :md-heading-id="headingId"
-              @on-html-changed="onHtmlChanged"
-            />
-          </div>
+          <template v-else>
+            <div class="post-content" ref="articleBody">
+              <MdPreview
+                :model-value="previewContent"
+                :theme="isDark ? 'dark' : 'light'"
+                :md-heading-id="headingId"
+                @on-html-changed="onHtmlChanged"
+              />
+            </div>
 
-          <!-- 上一篇/下一篇 -->
-          <nav class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid sm:grid-cols-2 gap-4">
-            <RouterLink v-if="post.next_id" :to="`/post/${post.next_slug || ''}`" class="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-700 transition-colors">
-              <div class="text-[12px] text-slate-400 mb-1.5">← 较新的文章</div>
-              <div class="text-[14.5px] font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-1">{{ post.next_title }}</div>
-            </RouterLink>
-            <RouterLink v-if="post.prev_id" :to="`/post/${post.prev_slug || ''}`" class="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-700 transition-colors sm:text-right">
-              <div class="text-[12px] text-slate-400 mb-1.5">较旧的文章 →</div>
-              <div class="text-[14.5px] font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-1">{{ post.prev_title }}</div>
-            </RouterLink>
-          </nav>
+            <!-- 上一篇/下一篇 -->
+            <nav class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid sm:grid-cols-2 gap-4">
+              <RouterLink v-if="post.next_id" :to="`/post/${post.next_slug || ''}`" class="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-700 transition-colors">
+                <div class="text-[12px] text-slate-400 mb-1.5">← 较新的文章</div>
+                <div class="text-[14.5px] font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-1">{{ post.next_title }}</div>
+              </RouterLink>
+              <RouterLink v-if="post.prev_id" :to="`/post/${post.prev_slug || ''}`" class="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-700 transition-colors sm:text-right">
+                <div class="text-[12px] text-slate-400 mb-1.5">较旧的文章 →</div>
+                <div class="text-[14.5px] font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-1">{{ post.prev_title }}</div>
+              </RouterLink>
+            </nav>
+          </template>
         </article>
 
         <!-- 目录 TOC -->
