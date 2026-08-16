@@ -14,7 +14,13 @@ public class SpaController {
     }
 
     /** 管理后台 SPA（根路径 /admin、/admin/ 及无扩展名子路径回 admin/index.html） */
-    @GetMapping({"/admin", "/admin/", "/admin/{path:[^\\.]*}"})
+    @GetMapping({
+        "/admin", "/admin/",
+        "/admin/{path:[^\\\\.]*}",
+        "/admin/{path:[^\\\\.]*}/{p2:[^\\\\.]*}",
+        "/admin/{path:[^\\\\.]*}/{p2:[^\\\\.]*}/{p3:[^\\\\.]*}",
+        "/admin/{path:[^\\\\.]*}/{p2:[^\\\\.]*}/{p3:[^\\\\.]*}/{p4:[^\\\\.]*}"
+    })
     public String forwardAdmin() {
         return "forward:/admin/index.html";
     }

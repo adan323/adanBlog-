@@ -50,29 +50,14 @@
         </div>
       </div>
 
-      <!-- 编辑器：双栏 Markdown -->
-      <div class="editor-wrap">
-        <div class="editor-pane">
-          <div class="pane-header">
-            <span class="pane-title">Markdown 编辑</span>
-            <span class="pane-hint">支持语法高亮、数学公式 $...$ / ```math</span>
-          </div>
-          <el-input
-            v-model="form.content"
-            type="textarea"
-            :rows="20"
-            placeholder="开始写作… 支持 Markdown 语法"
-            resize="none"
-            class="editor-input"
-          />
-        </div>
-        <div class="editor-pane preview-pane">
-          <div class="pane-header">
-            <span class="pane-title">实时预览</span>
-          </div>
-          <div class="preview-body md-preview" v-html="previewHtml"></div>
-        </div>
-      </div>
+      <!-- md-editor-v3 编辑器：支持 Mermaid（思维导图/流程图等）、Katex 公式、代码高亮 -->
+      <MdEditor
+        v-model="form.content"
+        style="height: 640px"
+        class="md-editor"
+        :toolbars="toolbars"
+        :on-upload-img="onUploadImg"
+      />
     </el-card>
   </div>
 </template>
@@ -81,8 +66,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
+import '../utils/editor-config'
 import { adminApi } from '../api'
-import { renderMarkdown } from '../utils/markdown'
 
 const route = useRoute()
 const router = useRouter()
@@ -100,7 +87,14 @@ const form = reactive({
   tags: [],
 })
 
-const previewHtml = computed(() => renderMarkdown(form.content))
+// 精简工具栏：'-' 分隔工具，'=' 分左右区；含 Mermaid 图、公式、图片、代码块等
+const toolbars = [
+  'bold', 'italic', 'strikeThrough', '-',
+  'title', 'quote', 'unorderedList', 'orderedList', 'task', '-',
+  'link', 'image', 'table', 'code', 'codeRow', 'mermaid', 'katex', '-',
+  'revoke', 'next', '=',
+  'preview', 'fullscreen', 'htmlPreview', 'catalog',
+]
 
 function parseTags() {
   form.tags = tagInput.value
@@ -140,6 +134,22 @@ async function doUpload({ file }) {
     ElMessage.success('封面上传成功')
   } catch (e) {
     ElMessage.error(e.message || '上传失败')
+  }
+}
+
+// md-editor-v3 图片上传：files 为选中文件数组，callback 接收上传后的 URL 数组
+async function onUploadImg(files, callback) {
+  try {
+    const urls = []
+    for (const file of files) {
+      const res = await adminApi.upload(file)
+      urls.push(res.url)
+    }
+    callback(urls)
+    ElMessage.success('图片上传成功')
+  } catch (e) {
+    ElMessage.error(e.message || '图片上传失败')
+    callback([])
   }
 }
 
@@ -212,47 +222,13 @@ onMounted(async () => {
   border-radius: 8px;
   border: 1px solid #e2e8f0;
 }
-.editor-wrap {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  border-top: 1px solid #eef2f7;
-  padding-top: 20px;
-}
-.editor-pane {
+.md-editor {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   overflow: hidden;
-  background: #fff;
-}
-.pane-header {
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.pane-title { font-size: 13px; font-weight: 600; color: #334155; }
-.pane-hint { font-size: 12px; color: #94a3b8; }
-.editor-input :deep(.el-textarea__inner) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13.5px;
-  line-height: 1.8;
-  border: none;
-  box-shadow: none;
-  padding: 14px;
-  min-height: 480px !important;
-}
-.preview-body {
-  padding: 14px;
-  min-height: 480px;
-  max-height: 600px;
-  overflow-y: auto;
-  background: #fff;
+  margin-top: 4px;
 }
 @media (max-width: 900px) {
-  .editor-wrap { grid-template-columns: 1fr; }
   .form-row.two-col { grid-template-columns: 1fr; }
 }
 </style>
