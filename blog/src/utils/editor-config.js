@@ -40,9 +40,31 @@ function resolveDynamicData(node) {
   return resolveTrafficPlaceholder(node)
 }
 
+/**
+ * echarts 渲染前统一处理（任何文章都生效）：
+ * 1. {{traffic.*}} 占位符替换为实时数据
+ * 2. 标题布局兜底：带 title 的图表自动留出标题空间（grid.top >= 90），
+ *    避免"标题与图表区/坐标轴名称重合"（2026-08 用户报障的通用修复，
+ *    不用每篇文章手动调参）
+ */
+function normalizeEchartsOption(option) {
+  const out = resolveDynamicData(option)
+  if (out && typeof out === 'object' && out.title && out.grid) {
+    // 标题存在时，确保图表区顶部给标题留足空间（echarts 默认 top 从容器顶算）
+    if (typeof out.grid.top === 'undefined' || Number(out.grid.top) < 90) {
+      out.grid.top = 90
+    }
+    // 标题固定贴顶，避免默认定位导致与图表区交错
+    if (typeof out.title.top === 'undefined') {
+      out.title.top = 0
+    }
+  }
+  return out
+}
+
 config({
-  // echarts 渲染前钩子：把 {{traffic.*}} 占位符替换为实时数据
-  echartsConfig: (option) => resolveDynamicData(option),
+  // echarts 渲染前钩子：占位符替换 + 标题布局兜底（所有文章统一生效）
+  echartsConfig: (option) => normalizeEchartsOption(option),
   editorExtensions: {
     highlight: {
       js: `${V}highlight.min.js`,

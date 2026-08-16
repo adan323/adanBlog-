@@ -35,8 +35,27 @@ function resolveDynamicData(node) {
   return resolveTrafficPlaceholder(node)
 }
 
+/**
+ * echarts 渲染前统一处理（任何文章都生效，与博客前台一致）：
+ * 1. {{traffic.*}} 占位符替换为实时数据
+ * 2. 标题布局兜底：带 title 的图表自动留出标题空间（grid.top >= 90），
+ *    避免"标题与图表区/坐标轴名称重合"，不用每篇文章手动调参
+ */
+function normalizeEchartsOption(option) {
+  const out = resolveDynamicData(option)
+  if (out && typeof out === 'object' && out.title && out.grid) {
+    if (typeof out.grid.top === 'undefined' || Number(out.grid.top) < 90) {
+      out.grid.top = 90
+    }
+    if (typeof out.title.top === 'undefined') {
+      out.title.top = 0
+    }
+  }
+  return out
+}
+
 config({
-  echartsConfig: (option) => resolveDynamicData(option),
+  echartsConfig: (option) => normalizeEchartsOption(option),
   editorExtensions: {
     highlight: {
       js: `${V}highlight.min.js`,
