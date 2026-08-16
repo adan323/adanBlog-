@@ -64,12 +64,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import '../utils/editor-config'
+import { ensureDataSources, collectDataSources } from '../utils/editor-config'
 import { adminApi } from '../api'
 
 const route = useRoute()
@@ -145,23 +146,21 @@ async function onUploadImg(files, callback) {
   }
 }
 
+/** 扫描内容占位符并预取对应数据源（TTL 缓存，重复调用零成本） */
+function preloadSources(content) {
+  const sources = collectDataSources(content)
+  if (sources.length) ensureDataSources(sources)
+}
+
 onMounted(async () => {
-  // 预取流量统计：编辑时 echarts 动态占位符 {{traffic.*}} 能实时预览
-  try {
-    const r = await fetch('/api/public/stats/traffic?days=14')
-    if (r.ok) {
-      const data = await r.json()
-      window.__trafficData = {
-        days: data.days || [],
-        views: data.views || [],
-        today: data.overview?.today ?? 0,
-        week: data.overview?.week ?? 0,
-        total: data.overview?.total ?? 0,
-      }
-    }
-  } catch (e) {
-    /* 忽略：占位符显示空数据兜底 */
-  }
+  // 预取数据源：编辑时动态占位符 {{源.字段}} 能实时预览
+  preloadSources(form.content)
+  // 监听内容变化：用户新写占位符时自动预取对应数据源
+  watch(
+    () => form.content,
+    (val) => preloadSources(val),
+    { deep: false }
+  )
   if (isEdit.value) {
     try {
       const data = await adminApi.getArticle(route.params.id)
