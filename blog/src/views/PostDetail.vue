@@ -43,9 +43,20 @@
       <div class="flex gap-10">
         <!-- 正文（封面图已拼入 markdown 顶部，由 MdPreview 统一渲染/查看） -->
         <article class="flex-1 min-w-0 pb-16">
-          <div class="post-content" ref="articleBody">
+          <!-- mermaid 预加载骨架屏：含图文章先显示骨架，mermaid 就绪后再渲染 MdPreview，
+               保证 md-editor-v3 走原生渲染路径（enableZoom 缩放、主题全部正常） -->
+          <div v-if="!mdReady" class="py-8 animate-pulse">
+            <div class="skeleton h-6 w-1/3 mb-4 rounded"></div>
+            <div class="skeleton h-64 w-full rounded-2xl"></div>
+            <div class="skeleton h-4 w-full mt-4 rounded"></div>
+            <div class="skeleton h-4 w-3/4 mt-3 rounded"></div>
+            <p class="text-[13px] text-slate-400 mt-5 flex items-center gap-2">
+              <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 3a9 9 0 109 9h-3a6 6 0 11-6-6V3z"/></svg>
+              正在加载图表引擎…
+            </p>
+          </div>
+          <div v-else class="post-content" ref="articleBody">
             <MdPreview
-              ref="mdPreviewRef"
               :model-value="previewContent"
               :theme="isDark ? 'dark' : 'light'"
               :md-heading-id="headingId"
@@ -104,7 +115,10 @@ const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
 const isDark = ref(false)
-const mdPreviewRef = ref(null)
+// 正文就绪标记：含 mermaid 的文章需等 mermaid.min.js 预加载完成（骨架屏期间），
+// 确保 MdPreview 挂载时 mermaid 实例已就绪 → md-editor-v3 走原生渲染路径
+// （enableZoom 缩放、主题全部正常），从根上消除"图表时灵时不灵"竞态。
+const mdReady = ref(false)
 
 const toc = computed(() => extractToc(post.value?.content || ''))
 
@@ -124,101 +138,43 @@ function headingId({ text }) {
 
 function onHtmlChanged() {
   initScrollSpy()
-  ensureMermaidRendered()
 }
 
-/**
- * mermaid 渲染兜底：md-editor-v3 在 HTML 渲染完成时检查 mermaid 实例，
- * 若 mermaid.min.js（2.8MB，挂载后才异步注入）还没加载完会静默跳过且不重试，
- * 导致思维导图/图表"时灵时不灵"。这里检测到"有 mermaid 容器但无 SVG"时，
- * 等 mermaid script 就绪后调用 MdPreview.rerender() 强制重新渲染。
- */
-let mermaidRetryTimer = null
-let mermaidRetryCount = 0
-// md-editor-v3 原生渲染 mermaid 的主题配置（抄自其源码 l() 函数），
-// 兜底手动渲染必须用同一套，否则颜色花哨（默认 base 主题 vs 原生白卡片主题）
-function mermaidConfig() {
-  return isDark.value
-    ? { startOnLoad: false, securityLevel: 'loose', theme: 'dark' }
-    : {
-        startOnLoad: false,
-        securityLevel: 'loose',
-        theme: 'base',
-        themeVariables: {
-          background: '#ffffff',
-          primaryColor: '#ffffff',
-          primaryTextColor: '#1f2329',
-          primaryBorderColor: '#b7c0cc',
-          secondaryColor: '#f7f8fa',
-          tertiaryColor: '#f7f8fa',
-          lineColor: '#596273',
-          edgeLabelBackground: '#ffffff',
-          clusterBkg: '#ffffff',
-          clusterBorder: '#b7c0cc',
-        },
-      }
+/** 预加载 mermaid：注入 script 等 window.mermaid 就绪（含 mermaid 文章在骨架屏阶段调用） */
+let mermaidPreloadPromise = null
+function preloadMermaid() {
+  if (window.mermaid) return Promise.resolve()
+  if (mermaidPreloadPromise) return mermaidPreloadPromise
+  mermaidPreloadPromise = new Promise((resolve) => {
+    const s = document.createElement('script')
+    s.src = '/vendor/mermaid.min.js'
+    s.onload = () => resolve()
+    s.onerror = () => resolve() // 加载失败也别卡死，让 MdPreview 自己降级
+    document.head.appendChild(s)
+  })
+  return mermaidPreloadPromise
 }
 
-function ensureMermaidRendered() {
-  const body = articleBody.value
-  if (!body) return
-  const containers = body.querySelectorAll('.md-editor-mermaid')
-  if (!containers.length) return
-  const rendered = body.querySelectorAll('.md-editor-mermaid svg').length
-  if (rendered >= containers.length) return
-  // md-editor-v3 因 mermaid.js 加载慢而跳过渲染且不重试（replaceMermaid 只在
-  // 实例就绪时渲染，就绪后不会自动补渲染）。这里等 window.mermaid 就绪后
-  // 手动渲染缺失的容器（最多重试 30 次 ≈ 15s），per-call config 保证主题
-  // 与原生一致；渲染后补 medium-zoom 提供点击放大（原生 enableZoom 的替代）。
-  clearTimeout(mermaidRetryTimer)
-  const tryRender = async () => {
-    mermaidRetryCount++
-    if (window.mermaid) {
-      mermaidRetryCount = 0
-      try {
-        const nodes = Array.from(body.querySelectorAll('.md-editor-mermaid:not([data-processed])'))
-        for (const el of nodes) {
-          try {
-            await window.mermaid.run({ nodes: [el], config: mermaidConfig() })
-            el.setAttribute('data-processed', 'true')
-          } catch (e) {
-            el.classList.add('error')
-          }
-        }
-        // 补点击放大：md-editor-v3 原生 enableZoom 是自研拖拽缩放（不导出），
-        // 手动渲染绕过了它。这里给 SVG 绑定点击 → 全屏可滚动查看（白底原始像素）
-        const svgs = Array.from(body.querySelectorAll('.md-editor-mermaid svg'))
-        for (const svg of svgs) {
-          svg.style.cursor = 'zoom-in'
-          svg.addEventListener('click', (e) => {
-            e.stopPropagation()
-            openMermaidViewer(svg)
-          })
-        }
-        // 手动渲染后给滚动监听一次机会
-        initScrollSpy()
-      } catch (e) {
-        console.error('mermaid fallback render failed:', e)
-      }
-    } else if (mermaidRetryCount < 30) {
-      mermaidRetryTimer = setTimeout(tryRender, 500)
-    } else {
-      mermaidRetryCount = 0
-    }
-  }
-  mermaidRetryTimer = setTimeout(tryRender, 500)
+/** 文章正文是否含 mermaid 图 */
+function hasMermaid(content) {
+  return /```mermaid|```mindmap/.test(content || '')
 }
 
 async function load() {
   loading.value = true
   error.value = ''
   post.value = null
+  mdReady.value = false
   try {
     post.value = await api.getArticle(route.params.slug)
+    if (hasMermaid(post.value?.content)) {
+      await preloadMermaid()
+    }
   } catch (e) {
     error.value = e.message || '文章加载失败'
   } finally {
     loading.value = false
+    mdReady.value = true
   }
 }
 
@@ -265,43 +221,9 @@ function initThemeObserver() {
 }
 
 /**
- * mermaid 图全屏查看器（兜底渲染专用，替代 md-editor-v3 原生 enableZoom）：
- * 点击图 → 全屏遮罩 + 原始像素可滚动查看，Esc/点击遮罩关闭。
+ * mermaid 图全屏查看器已移除（2026-08）：改用"骨架屏 + 预加载 mermaid 就绪后再
+ * 渲染 MdPreview"，md-editor-v3 走原生渲染路径，enableZoom 缩放原生自带。
  */
-let mermaidViewerEl = null
-function openMermaidViewer(svg) {
-  closeMermaidViewer()
-  const clone = svg.cloneNode(true)
-  clone.removeAttribute('style')
-  clone.setAttribute('style', 'max-width:none; background:#fff;')
-
-  const overlay = document.createElement('div')
-  overlay.className = 'mermaid-viewer'
-  overlay.innerHTML = `
-    <div class="mermaid-viewer-body">
-      <button class="mermaid-viewer-close" title="关闭 (Esc)">✕</button>
-      <div class="mermaid-viewer-scroll"></div>
-    </div>`
-  overlay.querySelector('.mermaid-viewer-scroll').appendChild(clone)
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay || e.target.classList.contains('mermaid-viewer-close')) closeMermaidViewer()
-  })
-  document.body.appendChild(overlay)
-  mermaidViewerEl = overlay
-  document.addEventListener('keydown', viewerEsc)
-}
-
-function viewerEsc(e) {
-  if (e.key === 'Escape') closeMermaidViewer()
-}
-
-function closeMermaidViewer() {
-  if (mermaidViewerEl) {
-    mermaidViewerEl.remove()
-    mermaidViewerEl = null
-  }
-  document.removeEventListener('keydown', viewerEsc)
-}
 
 onMounted(() => {
   initThemeObserver()
@@ -310,7 +232,5 @@ onMounted(() => {
 onUnmounted(() => {
   if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
   if (themeObserver) themeObserver.disconnect()
-  clearTimeout(mermaidRetryTimer)
-  closeMermaidViewer()
 })
 </script>
