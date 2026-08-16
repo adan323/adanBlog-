@@ -39,41 +39,13 @@
         </div>
       </header>
 
-      <!-- 封面图：自适应容器包裹（容器宽度贴合图片，竖图/横图都完整显示无留白） -->
-      <div v-if="post.coverUrl" class="mb-10 animate-fade-in">
-        <!-- 加载/失败占位 -->
-        <div v-if="coverState !== 'ok'" class="skeleton flex items-center justify-center rounded-2xl" style="height: 320px; width: 100%">
-          <span class="relative z-10 flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
-            <svg v-if="coverState !== 'error'" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 3a9 9 0 109 9h-3a6 6 0 11-6-6V3z"/></svg>
-            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-            {{ coverState === 'error' ? '封面加载失败' : '封面加载中…' }}
-          </span>
-        </div>
-        <!-- 探测图：始终渲染触发加载状态（注意不能用 display:none，否则不触发加载） -->
-        <img v-if="coverState !== 'ok'" :src="post.coverUrl" alt="" aria-hidden="true"
-             class="block w-0 h-0 opacity-0 pointer-events-none overflow-hidden"
-             @load="coverState = 'ok'" @error="coverState = 'error'">
-        <!-- 封面图：w-fit 自适应容器 + 居中，容器宽度 = 图片宽度，无固定比例无留白 -->
-        <div v-else class="w-fit mx-auto group relative">
-          <img :src="post.coverUrl" :alt="post.title" @click="openCover"
-               class="block max-w-full w-auto h-auto max-h-[70vh] rounded-2xl shadow-lg cursor-zoom-in transition-shadow hover:shadow-xl">
-          <!-- 悬停提示 -->
-          <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <span class="flex items-center gap-1 text-[11.5px] text-white bg-black/50 backdrop-blur px-2.5 py-1 rounded-full">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              点击查看大图
-            </span>
-          </div>
-        </div>
-      </div>
-
       <!-- 正文 + 目录 -->
       <div class="flex gap-10">
-        <!-- 正文 -->
+        <!-- 正文（封面图已拼入 markdown 顶部，由 MdPreview 统一渲染/查看） -->
         <article class="flex-1 min-w-0 pb-16">
           <div class="post-content" ref="articleBody">
             <MdPreview
-              :model-value="post.content"
+              :model-value="previewContent"
               :theme="isDark ? 'dark' : 'light'"
               :md-heading-id="headingId"
               @on-html-changed="onHtmlChanged"
@@ -130,10 +102,18 @@ const loading = ref(true)
 const error = ref('')
 const articleBody = ref(null)
 const activeHeading = ref('')
-const coverState = ref('')
 const isDark = ref(false)
 
 const toc = computed(() => extractToc(post.value?.content || ''))
+
+/** 正文 markdown：封面图以 HTML 拼入顶部（保留居中/限高样式），由 MdPreview 统一渲染和点击查看 */
+const previewContent = computed(() => {
+  const content = post.value?.content || ''
+  const cover = post.value?.coverUrl
+  if (!cover) return content
+  const alt = (post.value?.title || '封面').replace(/"/g, '&quot;')
+  return `<div class="md-cover-wrap"><img class="md-cover-img" src="${cover}" alt="${alt}" /></div>\n\n${content}`
+})
 
 // MdPreview 标题锚点 id 与 extractToc 保持一致（TOC 跳转依赖）
 function headingId({ text }) {
@@ -148,7 +128,6 @@ async function load() {
   loading.value = true
   error.value = ''
   post.value = null
-  coverState.value = ''
   try {
     post.value = await api.getArticle(route.params.slug)
   } catch (e) {
@@ -189,12 +168,6 @@ watch(() => route.params.slug, () => {
   post.value = null
   load()
 }, { immediate: true })
-
-/** 打开封面大图（新标签页） */
-function openCover() {
-  if (coverState.value !== 'ok' || !post.value?.coverUrl) return
-  window.open(post.value.coverUrl, '_blank', 'noopener')
-}
 
 // 主题跟随：监听 <html> 的 dark class 变化
 let themeObserver = null
